@@ -19,7 +19,7 @@ The following instructions will allow you to compile and run an icarus verilog m
 
 1. Checkout the repository
 ```sh
-git clone https://github.com/jypark1257/rv_mpw.git
+git clone https://github.com/jypark1257/riscv_mpw.git
 ```
 
 2. Install the GNU Toolchain [riscv-gnu-toolchain](https://github.com/riscv-collab/riscv-gnu-toolchain)
