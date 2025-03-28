@@ -1,0 +1,6 @@
+/rtl/peripheral/pim_wrap/*
+/rtl/memory/*.v
+*.bin
+*.dump
+*.elf
+*.hex
