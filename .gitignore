@@ -1,5 +1,7 @@
 /rtl/peripheral/pim_wrap/*
 /rtl/memory/*.v
+/rtl/core/DW_div.v
+/rtl/core/DW02_mult.v
 *.bin
 *.dump
 *.elf
