@@ -35,7 +35,7 @@ module core_id_stage #(
     assign funct7_o = instr_i[31:25];
     
     // Main control unit
-    decoder_unit dec_u (
+    decoder dec_u (
         .opcode_i       (opcode_o),
         .rd_i           (rd_o),
         .fucnt3_i       (funct3_o),
