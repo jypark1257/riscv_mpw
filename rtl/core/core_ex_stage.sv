@@ -22,7 +22,8 @@ module core_ex_stage #(
     output  logic               branch_taken_o,
     output  logic   [XLEN-1:0]  pc_branch_o,
     output  logic   [XLEN-1:0]  forward_in1_o,
-    output  logic   [XLEN-1:0]  forward_in2_o
+    output  logic   [XLEN-1:0]  forward_in2_o,
+    output  logic   [XLEN-1:0]  mul_result_o        // M extension output
 );
 
     logic [1:0] forward_a;
@@ -118,6 +119,19 @@ module core_ex_stage #(
         .imm_i          (imm_i),
         .branch_taken_o (branch_taken_o),
         .pc_branch_o    (pc_branch_o)
+    );
+
+    // Multiplier and Divider
+    multiplier_unit #(
+        .XLEN           (XLEN)
+    ) m_u (
+        .mult_in1_i (forward_in1_o),
+        .mult_in2_i (forward_in2_o),
+        .opcode_i   (opcode_i),
+        .funct3_i   (funct3_i),
+        .funct7_i   (funct7_i),
+        .result_o   (mul_result_o),
+        .muldiv_o   ()
     );
 
 

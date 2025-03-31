@@ -27,6 +27,10 @@ module decoder_unit (
     localparam SRC_DMEM = 3'b001;
     localparam SRC_PC_PLUS_4 = 3'b010;
     localparam SRC_IMM = 3'b011;
+    localparam SRC_MUL = 3'b101;
+
+    // ARITHMETIC and MULTIPLIER related FUNCT7
+    localparam FUNCT7_MULDIV = 7'h01;
 
     always_comb begin
         dma_en_o = '0;
@@ -39,7 +43,11 @@ module decoder_unit (
         case (opcode_i)
             `OPCODE_R: begin
                 reg_write_o = 1'b1;
-                mem_to_reg_o = SRC_ALU;         // arithmetic instructions
+                if (funct7_i == `FUNCT7_MULDIV) begin
+                    mem_to_reg_o = SRC_MUL;         // M extension 
+                end else begin
+                    mem_to_reg_o = SRC_ALU;         // arithmetic instructions
+                end         
             end
             `OPCODE_I: begin
                 reg_write_o = 1'b1;

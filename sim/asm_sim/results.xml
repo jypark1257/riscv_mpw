@@ -1,0 +1,49 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1743395479" />
+    <testcase name="rvtest_add" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="19" time="0.31481122970581055" sim_time_ns="13545.001" ratio_time="43025.78727149515" />
+    <testcase name="rvtest_sub" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="134" time="0.29498791694641113" sim_time_ns="13545.001" ratio_time="45917.13837031721" />
+    <testcase name="rvtest_xor" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="248" time="0.3151113986968994" sim_time_ns="13545.000999999997" ratio_time="42984.801743172466" />
+    <testcase name="rvtest_or" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="360" time="0.3130147457122803" sim_time_ns="13545.001000000004" ratio_time="43272.72496117617" />
+    <testcase name="rvtest_and" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="472" time="0.3065969944000244" sim_time_ns="13545.001000000004" ratio_time="44178.51853540194" />
+    <testcase name="rvtest_sll" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="584" time="0.3035285472869873" sim_time_ns="13865.00099999999" ratio_time="45679.396959293525" />
+    <testcase name="rvtest_srl" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="696" time="0.3148660659790039" sim_time_ns="14025.001000000004" ratio_time="44542.75171378814" />
+    <testcase name="rvtest_slt" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="808" time="0.29322123527526855" sim_time_ns="13545.001000000004" ratio_time="46193.79284479279" />
+    <testcase name="rvtest_sltu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="920" time="0.29491543769836426" sim_time_ns="13545.001000000004" ratio_time="45928.42309548291" />
+    <testcase name="rvtest_addi" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1032" time="0.2665441036224365" sim_time_ns="12105.001000000004" ratio_time="45414.62683093867" />
+    <testcase name="rvtest_xori" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1144" time="0.2495589256286621" sim_time_ns="11625.00099999999" ratio_time="46582.18883863012" />
+    <testcase name="rvtest_ori" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1256" time="0.2506370544433594" sim_time_ns="11625.00099999999" ratio_time="46381.81303964807" />
+    <testcase name="rvtest_andi" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1368" time="0.25217604637145996" sim_time_ns="11625.001000000018" ratio_time="46098.75191268634" />
+    <testcase name="rvtest_slli" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1480" time="0.2667398452758789" sim_time_ns="12105.00099999999" ratio_time="45381.30022337025" />
+    <testcase name="rvtest_srli" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1592" time="0.27135443687438965" sim_time_ns="12105.001000000018" ratio_time="44609.55619311816" />
+    <testcase name="rvtest_srai" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1704" time="0.26897096633911133" sim_time_ns="12265.00099999999" ratio_time="45599.72091759751" />
+    <testcase name="rvtest_slti" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1816" time="0.2611837387084961" sim_time_ns="12105.00099999999" ratio_time="46346.68704819418" />
+    <testcase name="rvtest_sltiu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="1928" time="0.25658106803894043" sim_time_ns="12105.001000000018" ratio_time="47178.075500733685" />
+    <testcase name="rvtest_lb" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2040" time="0.44368529319763184" sim_time_ns="20935.00099999999" ratio_time="47184.347376316706" />
+    <testcase name="rvtest_lh" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2152" time="0.4589569568634033" sim_time_ns="20935.00100000002" ratio_time="45614.30148716709" />
+    <testcase name="rvtest_lw" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2264" time="0.444521427154541" sim_time_ns="20935.00099999999" ratio_time="47095.59477033216" />
+    <testcase name="rvtest_lbu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2376" time="0.4422261714935303" sim_time_ns="20935.00099999999" ratio_time="47340.03175184367" />
+    <testcase name="rvtest_lhu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2488" time="0.4544801712036133" sim_time_ns="20935.00099999999" ratio_time="46063.61801122633" />
+    <testcase name="rvtest_sb" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2600" time="0.4552879333496094" sim_time_ns="20935.00099999999" ratio_time="45981.89292208693" />
+    <testcase name="rvtest_sh" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2712" time="0.45532989501953125" sim_time_ns="20975.001000000047" ratio_time="46065.50377962846" />
+    <testcase name="rvtest_sw" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2824" time="0.4538919925689697" sim_time_ns="21015.00099999999" ratio_time="46299.563208986816" />
+    <testcase name="rvtest_beq" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="2936" time="0.2647426128387451" sim_time_ns="12265.00099999999" ratio_time="46328.01976412693" />
+    <testcase name="rvtest_bne" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3048" time="0.25639891624450684" sim_time_ns="12265.00099999999" ratio_time="47835.619509030425" />
+    <testcase name="rvtest_blt" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3160" time="0.2735288143157959" sim_time_ns="12265.00099999999" ratio_time="44839.88654240916" />
+    <testcase name="rvtest_bge" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3272" time="0.26442980766296387" sim_time_ns="12425.001000000047" ratio_time="46987.898640521904" />
+    <testcase name="rvtest_bltu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3384" time="0.2855491638183594" sim_time_ns="12425.00099999999" ratio_time="43512.65061978488" />
+    <testcase name="rvtest_bgeu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3496" time="0.27463507652282715" sim_time_ns="12585.00099999999" ratio_time="45824.44878978869" />
+    <testcase name="rvtest_jal" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3608" time="0.23403453826904297" sim_time_ns="10665.00099999999" ratio_time="45570.20121423124" />
+    <testcase name="rvtest_jalr" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3720" time="0.23833990097045898" sim_time_ns="11145.00099999999" ratio_time="46760.9533889223" />
+    <testcase name="rvtest_lui" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3832" time="0.22453856468200684" sim_time_ns="10665.00099999999" ratio_time="47497.4132621888" />
+    <testcase name="rvtest_auipc" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="3944" time="0.22485995292663574" sim_time_ns="10655.001000000047" ratio_time="47385.05394722918" />
+    <testcase name="rvtest_mul" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4059" time="0.2964060306549072" sim_time_ns="13545.00099999999" ratio_time="45697.454164722614" />
+    <testcase name="rvtest_mulh" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4171" time="0.2963840961456299" sim_time_ns="13545.000999999931" ratio_time="45700.83609798187" />
+    <testcase name="rvtest_mulhsu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4283" time="0.2936217784881592" sim_time_ns="13545.001000000047" ratio_time="46130.77772957592" />
+    <testcase name="rvtest_mulhu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4395" time="0.3032519817352295" sim_time_ns="13545.001000000047" ratio_time="44665.82847206664" />
+    <testcase name="rvtest_div" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4507" time="0.23683404922485352" sim_time_ns="10985.000999999931" ratio_time="46382.69301206187" />
+    <testcase name="rvtest_divu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4619" time="0.23414373397827148" sim_time_ns="10985.001000000047" ratio_time="46915.6308962744" />
+    <testcase name="rvtest_rem" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4731" time="0.23016905784606934" sim_time_ns="10985.000999999931" ratio_time="47725.793826494235" />
+    <testcase name="rvtest_remu" classname="test_asm" file="/home/hye/riscv_mpw/sim/asm_sim/test_asm.py" lineno="4843" time="0.23407506942749023" sim_time_ns="10985.001000000047" ratio_time="46929.39332184151" />
+  </testsuite>
+</testsuites>
