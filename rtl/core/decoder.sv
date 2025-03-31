@@ -1,6 +1,6 @@
 // `include "../RTL/headers/opcode.svh"
 
-module decoder_unit (
+module decoder (
     input           [6:0]   opcode_i,
     input           [4:0]   rd_i,
     input           [2:0]   fucnt3_i,
