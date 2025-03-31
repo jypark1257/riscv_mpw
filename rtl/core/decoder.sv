@@ -29,9 +29,6 @@ module decoder (
     localparam SRC_IMM = 3'b011;
     localparam SRC_MUL = 3'b101;
 
-    // ARITHMETIC and MULTIPLIER related FUNCT7
-    localparam FUNCT7_MULDIV = 7'h01;
-
     always_comb begin
         dma_en_o = '0;
         mem_read_o = '0;
