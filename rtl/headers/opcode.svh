@@ -32,6 +32,19 @@
 `define BRANCH_BLTU         3'b110
 `define BRANCH_BGEU         3'b111
 
+// FUNCT3 (MUL/DIV)
+`define FUNCT3_MUL          3'b000
+`define FUNCT3_MULH         3'b001
+`define FUNCT3_MULHSU       3'b010  
+`define FUNCT3_MULHU        3'b011
+`define FUNCT3_DIV          3'b100
+`define FUNCT3_DIVU         3'b101
+`define FUNCT3_REM          3'b110
+`define FUNCT3_REMU         3'b111
+
+// FUNCT7 (MUL/DIV)
+`define FUNCT7_MULDIV          7'h01
+
 // SIGNED LOAD, STORE
 `define FUNCT3_BYTE         3'b000
 `define FUNCT3_HALF         3'b001
@@ -41,7 +54,6 @@
 `define FUNCT3_BYTE_U       3'b100
 `define FUNCT3_HALF_U       3'b101
 
-// ARITHMETIC and MULTIPLIER related FUNCT7
-`define FUNCT7_MUL          7'h01
+
 
 

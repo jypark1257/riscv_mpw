@@ -10,6 +10,7 @@ module core_wb_stage #(
     input           [XLEN-1:0]  imm_i,
     input           [XLEN-1:0]  pc_plus_4_i,
     input           [XLEN-1:0]  alu_result_i,
+    input           [XLEN-1:0]  mul_result_i,       //M extension
     output  logic   [XLEN-1:0]  rd_din_o
 );
     // REGISTER SOURCE
@@ -17,6 +18,7 @@ module core_wb_stage #(
     localparam SRC_DMEM = 3'b001;
     localparam SRC_PC_PLUS_4 = 3'b010;
     localparam SRC_IMM = 3'b011;
+    localparam SRC_MUL = 3'b101;        // data form multiplier
 
     logic [31:0] dmem_dout;
     logic [31:0] dmem_dout_sized;
@@ -86,6 +88,8 @@ module core_wb_stage #(
                 rd_din_o = pc_plus_4_i;     // pc + 4
             SRC_IMM:
                 rd_din_o = imm_i;           // immediate
+            SRC_MUL:
+                rd_din_o = mul_result_i;    // M extension
             default: 
                 rd_din_o = alu_result_i;
         endcase 

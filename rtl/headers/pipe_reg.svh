@@ -31,6 +31,7 @@ typedef struct packed {
     logic   [4:0]   rd;
     logic   [31:0]  imm;
     logic   [31:0]  alu_result;
+    logic   [31:0]  mul_result;     // M extension
     logic           reg_write;
     logic   [2:0]   mem_to_reg;
     logic   [3:0]   d_size;

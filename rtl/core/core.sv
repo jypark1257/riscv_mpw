@@ -83,6 +83,8 @@ module core #(
     logic id_flush;
     logic if_stall;
 
+    logic [XLEN-1:0] mul_result;        // M extension
+
 
     // --------------------------------------------------------
 
@@ -226,7 +228,8 @@ module core #(
         .branch_taken_o (branch_taken),
         .pc_branch_o    (pc_branch),
         .forward_in1_o  (forward_in1),
-        .forward_in2_o  (forward_in2)
+        .forward_in2_o  (forward_in2),
+        .mul_result_o   (mul_result)        // M extension
     );
 
     assign stall = (dma_busy_i || ex.dma_en);
@@ -279,6 +282,7 @@ module core #(
             wb.rd <= ex.rd;
             wb.imm <= ex.imm;
             wb.alu_result <= alu_result;
+            wb.mul_result <= mul_result;        // M extension
             wb.reg_write <= ex.reg_write;
             wb.mem_to_reg <= ex.mem_to_reg;
             wb.d_size <= ex.d_size;
@@ -298,6 +302,7 @@ module core #(
         .imm_i          (wb.imm),
         .pc_plus_4_i    (wb.pc_plus_4),
         .alu_result_i   (wb.alu_result),
+        .mul_result_i   (wb.mul_result),        // M extension
         .rd_din_o       (rd_din)
     );
 
