@@ -2,6 +2,7 @@
 
 4-stage, in-order core which implements the 32-bit RISC-V instruction set. 
 - [v] Base Instruction (RV32I)
+- [v] M Extension (RV32M)
 
 Peripherals
 - [v] UART
@@ -62,6 +63,7 @@ cd software/asm_test
 # Compile test programs using Makefile
 # default test extension = rv32i
 make EXTENT=rv32ui
+# make EXTENT=rv32um
 
 cd ../../sim/asm_sim
 
