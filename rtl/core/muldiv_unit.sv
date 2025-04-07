@@ -1,6 +1,6 @@
 //`include "../headers/opcode.svh"
 
-module multiplier_unit #(
+module muldiv_unit #(
     parameter XLEN = 32,
     parameter NUM_STAGE= 2
 ) (
@@ -129,38 +129,69 @@ module multiplier_unit #(
         end
     end
 
-    // multiplier (DW02_mult_2_stage) 33-bit multiplier
-    DW02_mult_2_stage #(
-        .A_width(XLEN + 1),
-        .B_width(XLEN + 1)
-    ) m_u (
-        .CLK(clk_i),
-        .TC(1'b1),
-        .A(md_op1),
-        .B(md_op2),
-        .PRODUCT(mult_result)
-    );
+    if (NUM_STAGE == 2) begin
+        // multiplier (DW02_mult_2_stage) 33-bit multiplier
+        DW02_mult_2_stage #(
+            .A_width(XLEN + 1),
+            .B_width(XLEN + 1)
+        ) m_u (
+            .CLK(clk_i),
+            .TC(1'b1),
+            .A(md_op1),
+            .B(md_op2),
+            .PRODUCT(mult_result)
+        );
+        // divider (DW02_div_pipe)
+        DW_div_pipe #(
+            .a_width(XLEN + 1),
+            .b_width(XLEN + 1),
+            .tc_mode(1'b1),
+            .rem_mode(1'b1),
+            .num_stages(NUM_STAGE),
+            .stall_mode(1'b1)
+        ) d_u (
+            .clk(clk_i),
+            .rst_n(rst_ni),
+            .en(is_muldiv),
+            .a(md_op1),
+            .b(md_op2),
+            .quotient(div_result),
+            .remainder(rem_result),
+            .divide_by_0()
+        );
+    end else if (NUM_STAGE == 3) begin
+        // multiplier (DW02_mult_2_stage) 33-bit multiplier
+        DW02_mult_3_stage #(
+            .A_width(XLEN + 1),
+            .B_width(XLEN + 1)
+        ) m_u (
+            .CLK(clk_i),
+            .TC(1'b1),
+            .A(md_op1),
+            .B(md_op2),
+            .PRODUCT(mult_result)
+        );
+        // divider (DW02_div_pipe)
+        DW_div_pipe #(
+            .a_width(XLEN + 1),
+            .b_width(XLEN + 1),
+            .tc_mode(1'b1),
+            .rem_mode(1'b1),
+            .num_stages(NUM_STAGE),
+            .stall_mode(1'b1)
+        ) d_u (
+            .clk(clk_i),
+            .rst_n(rst_ni),
+            .en(is_muldiv),
+            .a(md_op1),
+            .b(md_op2),
+            .quotient(div_result),
+            .remainder(rem_result),
+            .divide_by_0()
+        );
+    end
 
     assign mult_result_signed_unsigned = ~mult_result + 1'b1;
-
-    // divider (DW02_div_pipe)
-    DW_div_pipe #(
-        .a_width(XLEN + 1),
-        .b_width(XLEN + 1),
-        .tc_mode(1'b1),
-        .rem_mode(1'b1),
-        .num_stages(NUM_STAGE),
-        .stall_mode(1'b1)
-    ) d_u (
-        .clk(clk_i),
-        .rst_n(rst_ni),
-        .en(is_muldiv),
-        .a(md_op1),
-        .b(md_op2),
-        .quotient(div_result),
-        .remainder(rem_result),
-        .divide_by_0()
-    );
 
     // output logic 
     always @(*) begin

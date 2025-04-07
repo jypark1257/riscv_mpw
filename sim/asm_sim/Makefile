@@ -27,6 +27,7 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/core/alu.sv
 #VERILOG_SOURCES += $(shell pwd)/../../rtl/core/divv.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div_pipe.v
+VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_3_stage.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_2_stage.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/multiplier_unit.sv
 

@@ -126,8 +126,8 @@ module core_ex_stage #(
     );
 
     // Multiplier and Divider
-    multiplier_unit #(
-        .NUM_STAGE(2)
+    muldiv_unit #(
+        .NUM_STAGE(3)
     ) m_u (
         .clk_i(clk_i),
         .rst_ni(rst_ni),
