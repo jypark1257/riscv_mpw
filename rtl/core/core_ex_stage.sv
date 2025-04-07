@@ -23,7 +23,8 @@ module core_ex_stage #(
     output  logic   [XLEN-1:0]  pc_branch_o,
     output  logic   [XLEN-1:0]  forward_in1_o,
     output  logic   [XLEN-1:0]  forward_in2_o,
-    output  logic   [XLEN-1:0]  mul_result_o        // M extension output
+    output  logic   [XLEN-1:0]  mul_result_o,        // M extension output
+    output  logic               ex_valid_o
 );
 
     logic [1:0] forward_a;
@@ -31,6 +32,9 @@ module core_ex_stage #(
 
     logic [4:0] alu_control;
     logic       alu_zero;
+
+    logic is_muldiv;
+    logic md_valid;
 
     // ALU control unit
     alu_ctrl_unit alu_ctrl_u (
@@ -123,16 +127,21 @@ module core_ex_stage #(
 
     // Multiplier and Divider
     multiplier_unit #(
-        .XLEN           (XLEN)
+        .NUM_STAGE(2)
     ) m_u (
-        .mult_in1_i (forward_in1_o),
-        .mult_in2_i (forward_in2_o),
-        .opcode_i   (opcode_i),
-        .funct3_i   (funct3_i),
-        .funct7_i   (funct7_i),
-        .result_o   (mul_result_o),
-        .muldiv_o   ()
-    );
+        .clk_i(clk_i),
+        .rst_ni(rst_ni),
+        .mult_in1_i(forward_in1_o),
+        .mult_in2_i(forward_in2_o),
+        .opcode_i(opcode_i),
+        .funct7_i(funct7_i),
+        .funct3_i(funct3_i),
+        .result_o(mul_result_o),
+        .is_muldiv_o(is_muldiv),
+        .valid_o(md_valid)
+    ); 
 
+
+    assign ex_valid_o = (is_muldiv) ? md_valid : 1'b1;       // valid signal multi-cycle functional unit
 
 endmodule

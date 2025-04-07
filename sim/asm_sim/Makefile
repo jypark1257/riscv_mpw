@@ -16,7 +16,7 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/core/core_id_stage.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/core_ex_stage.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/core_wb_stage.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/program_counter.sv
-VERILOG_SOURCES += $(shell pwd)/../../rtl/core/decode_unit.sv
+VERILOG_SOURCES += $(shell pwd)/../../rtl/core/decoder.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/immediate_generator.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/register_file.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/branch_unit.sv
@@ -24,9 +24,10 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/core/forwarding_unit.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/alu_control_unit.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/alu.sv
 
-VERILOG_SOURCES += $(shell pwd)/../../rtl/core/divv.v
+#VERILOG_SOURCES += $(shell pwd)/../../rtl/core/divv.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div.v
-VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult.v
+VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div_pipe.v
+VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_2_stage.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/multiplier_unit.sv
 
 # DMA

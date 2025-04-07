@@ -1,7 +1,7 @@
 
 module core_if_stage #(
     parameter XLEN      = 32,
-    parameter RESET_PC  = 32'h4000_0000
+    parameter RESET_PC  = 32'h1000_0000
 ) (
     input                       clk_i,
     input                       rst_ni,

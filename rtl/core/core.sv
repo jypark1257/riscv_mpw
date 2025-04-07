@@ -70,6 +70,7 @@ module core #(
     logic [XLEN-1:0] forward_in2;
     logic [XLEN-1:0] alu_result;
     logic ex_mem_write;
+    logic ex_valid;
 
     logic [XLEN-1:0] imm;
 
@@ -77,14 +78,15 @@ module core #(
     logic [XLEN-1:0] rs2_dout;
 
     logic [XLEN-1:0] rd_din;
-    
-    logic stall;
+
+    logic dma_stall;
+    logic ex_stall;
     logic if_flush;    
     logic id_flush;
     logic if_stall;
+    logic id_stall;
 
     logic [XLEN-1:0] mul_result;        // M extension
-
 
     // --------------------------------------------------------
 
@@ -93,7 +95,7 @@ module core #(
         .RESET_PC(RESET_PC)
     ) core_IF (
         .clk_i          (clk_i),
-        .rst_ni        (rst_ni),
+        .rst_ni         (rst_ni),
         .pc_write_i     (pc_write),
         .branch_taken_i (branch_taken),
         .pc_branch_i    (pc_branch),
@@ -103,14 +105,14 @@ module core #(
 
     // Instruction memory
     logic [XLEN-1:0] instr;
-    assign pc_write = (stall == 1'b0) ? 1'b1 : 1'b0;
+    assign pc_write = ((!dma_stall) && (!ex_stall)) ? 1'b1 : 1'b0;
 
     // instruction memory interface
     assign instr_addr_o = (branch_taken) ? pc_branch : pc_curr;
     assign instr = instr_rd_data_i;
     assign instr_wr_data_o = '0;
     assign instr_size_o = 4'b1111;        // always 32-bit access
-    assign instr_read_o = (stall == 1'b0) ? 1'b1 : 1'b0;
+    assign instr_read_o = ((!dma_stall) && (!ex_stall)) ? 1'b1 : 1'b0;
     assign instr_write_o = 1'b0;
 
 
@@ -118,7 +120,7 @@ module core #(
     // --------------------------------------------------------
 
     assign if_flush = (branch_taken) ? 1'b1 : 1'b0;
-    assign if_stall = (stall) ? 1'b1: 1'b0;
+    assign if_stall = (dma_stall || ex_stall) ? 1'b1: 1'b0;
 
     // IF/ID pipeline register
     always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -128,8 +130,7 @@ module core #(
             if (if_flush) begin
                 id <= '0;
             end else if (if_stall) begin
-                id.pc <= id.pc;
-                id.instr <= id.instr;
+                id <= id;
             end else begin
                 id.pc <= pc_instr;
                 id.instr <= instr;
@@ -143,7 +144,7 @@ module core #(
         .XLEN(32)
     ) core_ID (
         .clk_i          (clk_i),
-        .rst_ni        (rst_ni),
+        .rst_ni         (rst_ni),
         .instr_i        (id.instr),
         .rd_din_i       (rd_din),
         .wb_rd_i        (wb.rd),
@@ -170,11 +171,12 @@ module core #(
     // --------------------------------------------------------
 
     // request for dmem use
-    assign req_dmem_o = ((mem_read || mem_write) && (stall == 1'b0));
+    assign req_dmem_o = ((mem_read || mem_write) && (dma_stall == 1'b0));
     
 
     // --------------------------------------------------------
-    assign id_flush = (branch_taken || stall) ? 1'b1 : 1'b0;
+    assign id_flush = (branch_taken || dma_stall) ? 1'b1 : 1'b0;
+    assign id_stall = (ex_stall) ? 1'b1 : 1'b0;
 
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (rst_ni == '0) begin
@@ -182,6 +184,8 @@ module core #(
         end else begin
             if (id_flush) begin
                 ex <= '0;
+            end else if (id_stall) begin
+                ex <= ex;
             end else begin
                 ex.pc <= id.pc;
                 ex.opcode <= opcode;
@@ -229,10 +233,13 @@ module core #(
         .pc_branch_o    (pc_branch),
         .forward_in1_o  (forward_in1),
         .forward_in2_o  (forward_in2),
-        .mul_result_o   (mul_result)        // M extension
+        .mul_result_o   (mul_result),        // M extension
+        .ex_valid_o     (ex_valid)
     );
 
-    assign stall = (dma_busy_i || ex.dma_en);
+    assign dma_stall = (dma_busy_i || ex.dma_en) ? 1'b1 : 1'b0;
+
+    assign ex_stall = (!ex_valid) ? 1'b1 : 1'b0;
 
 
     // DMA interface
