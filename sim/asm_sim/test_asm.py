@@ -29,10 +29,10 @@ async def rvtest_add(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     for idx in range (0, 448):
-        dut.M1_0.mem[idx].value = random.randint(0, 2**9)
+        dut.genblk1.M1_0.mem[idx].value = random.randint(0, 2**9)
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -48,7 +48,7 @@ async def rvtest_add(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -81,9 +81,9 @@ async def rvtest_add(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -116,7 +116,7 @@ async def rvtest_add(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -147,8 +147,8 @@ async def rvtest_sub(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -162,7 +162,7 @@ async def rvtest_sub(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -195,9 +195,9 @@ async def rvtest_sub(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -230,7 +230,7 @@ async def rvtest_sub(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -261,8 +261,8 @@ async def rvtest_xor(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -276,7 +276,7 @@ async def rvtest_xor(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -309,9 +309,9 @@ async def rvtest_xor(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -344,7 +344,7 @@ async def rvtest_xor(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -373,8 +373,8 @@ async def rvtest_or(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -388,7 +388,7 @@ async def rvtest_or(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -421,9 +421,9 @@ async def rvtest_or(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -456,7 +456,7 @@ async def rvtest_or(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -485,8 +485,8 @@ async def rvtest_and(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -500,7 +500,7 @@ async def rvtest_and(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -533,9 +533,9 @@ async def rvtest_and(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -568,7 +568,7 @@ async def rvtest_and(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -597,8 +597,8 @@ async def rvtest_sll(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -612,7 +612,7 @@ async def rvtest_sll(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -645,9 +645,9 @@ async def rvtest_sll(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -680,7 +680,7 @@ async def rvtest_sll(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -709,8 +709,8 @@ async def rvtest_srl(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -724,7 +724,7 @@ async def rvtest_srl(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -757,9 +757,9 @@ async def rvtest_srl(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -792,7 +792,7 @@ async def rvtest_srl(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -821,8 +821,8 @@ async def rvtest_slt(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -836,7 +836,7 @@ async def rvtest_slt(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -869,9 +869,9 @@ async def rvtest_slt(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -904,7 +904,7 @@ async def rvtest_slt(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -933,8 +933,8 @@ async def rvtest_sltu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -948,7 +948,7 @@ async def rvtest_sltu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -981,9 +981,9 @@ async def rvtest_sltu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1016,7 +1016,7 @@ async def rvtest_sltu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1045,8 +1045,8 @@ async def rvtest_addi(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1060,7 +1060,7 @@ async def rvtest_addi(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1093,9 +1093,9 @@ async def rvtest_addi(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1128,7 +1128,7 @@ async def rvtest_addi(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1157,8 +1157,8 @@ async def rvtest_xori(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1172,7 +1172,7 @@ async def rvtest_xori(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1205,9 +1205,9 @@ async def rvtest_xori(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1240,7 +1240,7 @@ async def rvtest_xori(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1269,8 +1269,8 @@ async def rvtest_ori(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1284,7 +1284,7 @@ async def rvtest_ori(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1317,9 +1317,9 @@ async def rvtest_ori(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1352,7 +1352,7 @@ async def rvtest_ori(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1381,8 +1381,8 @@ async def rvtest_andi(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1396,7 +1396,7 @@ async def rvtest_andi(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1429,9 +1429,9 @@ async def rvtest_andi(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1464,7 +1464,7 @@ async def rvtest_andi(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1493,8 +1493,8 @@ async def rvtest_slli(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1508,7 +1508,7 @@ async def rvtest_slli(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1541,9 +1541,9 @@ async def rvtest_slli(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1576,7 +1576,7 @@ async def rvtest_slli(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1605,8 +1605,8 @@ async def rvtest_srli(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1620,7 +1620,7 @@ async def rvtest_srli(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1653,9 +1653,9 @@ async def rvtest_srli(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1688,7 +1688,7 @@ async def rvtest_srli(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1717,8 +1717,8 @@ async def rvtest_srai(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1732,7 +1732,7 @@ async def rvtest_srai(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1765,9 +1765,9 @@ async def rvtest_srai(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1800,7 +1800,7 @@ async def rvtest_srai(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1829,8 +1829,8 @@ async def rvtest_slti(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1844,7 +1844,7 @@ async def rvtest_slti(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1877,9 +1877,9 @@ async def rvtest_slti(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1912,7 +1912,7 @@ async def rvtest_slti(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -1941,8 +1941,8 @@ async def rvtest_sltiu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -1956,7 +1956,7 @@ async def rvtest_sltiu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -1989,9 +1989,9 @@ async def rvtest_sltiu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2024,7 +2024,7 @@ async def rvtest_sltiu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2053,8 +2053,8 @@ async def rvtest_lb(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2068,7 +2068,7 @@ async def rvtest_lb(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2101,9 +2101,9 @@ async def rvtest_lb(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2136,7 +2136,7 @@ async def rvtest_lb(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2165,8 +2165,8 @@ async def rvtest_lh(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2180,7 +2180,7 @@ async def rvtest_lh(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2213,9 +2213,9 @@ async def rvtest_lh(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2248,7 +2248,7 @@ async def rvtest_lh(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2277,8 +2277,8 @@ async def rvtest_lw(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2292,7 +2292,7 @@ async def rvtest_lw(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2325,9 +2325,9 @@ async def rvtest_lw(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2360,7 +2360,7 @@ async def rvtest_lw(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2389,8 +2389,8 @@ async def rvtest_lbu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2404,7 +2404,7 @@ async def rvtest_lbu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2437,9 +2437,9 @@ async def rvtest_lbu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2472,7 +2472,7 @@ async def rvtest_lbu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2501,8 +2501,8 @@ async def rvtest_lhu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2516,7 +2516,7 @@ async def rvtest_lhu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2549,9 +2549,9 @@ async def rvtest_lhu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2584,7 +2584,7 @@ async def rvtest_lhu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2613,8 +2613,8 @@ async def rvtest_sb(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2628,7 +2628,7 @@ async def rvtest_sb(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2661,9 +2661,9 @@ async def rvtest_sb(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2696,7 +2696,7 @@ async def rvtest_sb(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2725,8 +2725,8 @@ async def rvtest_sh(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2740,7 +2740,7 @@ async def rvtest_sh(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2773,9 +2773,9 @@ async def rvtest_sh(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2808,7 +2808,7 @@ async def rvtest_sh(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2837,8 +2837,8 @@ async def rvtest_sw(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2852,7 +2852,7 @@ async def rvtest_sw(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2885,9 +2885,9 @@ async def rvtest_sw(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2920,7 +2920,7 @@ async def rvtest_sw(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2949,8 +2949,8 @@ async def rvtest_beq(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -2964,7 +2964,7 @@ async def rvtest_beq(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -2997,9 +2997,9 @@ async def rvtest_beq(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3032,7 +3032,7 @@ async def rvtest_beq(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3061,8 +3061,8 @@ async def rvtest_bne(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3076,7 +3076,7 @@ async def rvtest_bne(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3109,9 +3109,9 @@ async def rvtest_bne(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3144,7 +3144,7 @@ async def rvtest_bne(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3173,8 +3173,8 @@ async def rvtest_blt(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3188,7 +3188,7 @@ async def rvtest_blt(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3221,9 +3221,9 @@ async def rvtest_blt(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3256,7 +3256,7 @@ async def rvtest_blt(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3285,8 +3285,8 @@ async def rvtest_bge(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3300,7 +3300,7 @@ async def rvtest_bge(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3333,9 +3333,9 @@ async def rvtest_bge(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3368,7 +3368,7 @@ async def rvtest_bge(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3397,8 +3397,8 @@ async def rvtest_bltu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3412,7 +3412,7 @@ async def rvtest_bltu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3445,9 +3445,9 @@ async def rvtest_bltu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3480,7 +3480,7 @@ async def rvtest_bltu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3509,8 +3509,8 @@ async def rvtest_bgeu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3524,7 +3524,7 @@ async def rvtest_bgeu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3557,9 +3557,9 @@ async def rvtest_bgeu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3592,7 +3592,7 @@ async def rvtest_bgeu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3621,8 +3621,8 @@ async def rvtest_jal(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3636,7 +3636,7 @@ async def rvtest_jal(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3669,9 +3669,9 @@ async def rvtest_jal(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3704,7 +3704,7 @@ async def rvtest_jal(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3733,8 +3733,8 @@ async def rvtest_jalr(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3748,7 +3748,7 @@ async def rvtest_jalr(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3781,9 +3781,9 @@ async def rvtest_jalr(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3816,7 +3816,7 @@ async def rvtest_jalr(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3845,8 +3845,8 @@ async def rvtest_lui(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3860,7 +3860,7 @@ async def rvtest_lui(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3893,9 +3893,9 @@ async def rvtest_lui(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -3928,7 +3928,7 @@ async def rvtest_lui(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -3957,8 +3957,8 @@ async def rvtest_auipc(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -3972,7 +3972,7 @@ async def rvtest_auipc(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4005,9 +4005,9 @@ async def rvtest_auipc(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4040,7 +4040,7 @@ async def rvtest_auipc(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4072,8 +4072,8 @@ async def rvtest_mul(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4087,7 +4087,7 @@ async def rvtest_mul(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4120,9 +4120,9 @@ async def rvtest_mul(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4155,7 +4155,7 @@ async def rvtest_mul(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4184,8 +4184,8 @@ async def rvtest_mulh(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4199,7 +4199,7 @@ async def rvtest_mulh(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4232,9 +4232,9 @@ async def rvtest_mulh(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4267,7 +4267,7 @@ async def rvtest_mulh(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4296,8 +4296,8 @@ async def rvtest_mulhsu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4311,7 +4311,7 @@ async def rvtest_mulhsu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4344,9 +4344,9 @@ async def rvtest_mulhsu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4379,7 +4379,7 @@ async def rvtest_mulhsu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4408,8 +4408,8 @@ async def rvtest_mulhu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4423,7 +4423,7 @@ async def rvtest_mulhu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4456,9 +4456,9 @@ async def rvtest_mulhu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4491,7 +4491,7 @@ async def rvtest_mulhu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4520,8 +4520,8 @@ async def rvtest_div(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4535,7 +4535,7 @@ async def rvtest_div(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4568,9 +4568,9 @@ async def rvtest_div(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4603,7 +4603,7 @@ async def rvtest_div(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4632,8 +4632,8 @@ async def rvtest_divu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4647,7 +4647,7 @@ async def rvtest_divu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4680,9 +4680,9 @@ async def rvtest_divu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4715,7 +4715,7 @@ async def rvtest_divu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4744,8 +4744,8 @@ async def rvtest_rem(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4759,7 +4759,7 @@ async def rvtest_rem(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4792,9 +4792,9 @@ async def rvtest_rem(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4827,7 +4827,7 @@ async def rvtest_rem(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -4856,8 +4856,8 @@ async def rvtest_remu(dut):
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
     for idx in range (0, 256):
-        dut.M0_0.mem[idx].value = 0
-        dut.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
 
@@ -4871,7 +4871,7 @@ async def rvtest_remu(dut):
             mux_addr = idx & 0x00000003     # 2-bit
             row_addr = (idx & 0x000003fc) >> 2     # 8-bit
             if idx < 1024:
-                data =  dut.M0_0.mem[row_addr].value
+                data =  dut.genblk1.M0_0.mem[row_addr].value
                 data = data | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 data = data | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4904,9 +4904,9 @@ async def rvtest_remu(dut):
                 data = data | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 data = data | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 data = data | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_0.mem[row_addr].value = data
+                dut.genblk1.M0_0.mem[row_addr].value = data
             else:
-                ddata =  dut.M0_1.mem[row_addr].value
+                ddata =  dut.genblk1.M0_1.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
@@ -4939,7 +4939,7 @@ async def rvtest_remu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
-                dut.M0_1.mem[row_addr].value = ddata
+                dut.genblk1.M0_1.mem[row_addr].value = ddata
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 

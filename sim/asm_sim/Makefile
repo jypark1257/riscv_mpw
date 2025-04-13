@@ -29,7 +29,7 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div_pipe.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_3_stage.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_2_stage.v
-VERILOG_SOURCES += $(shell pwd)/../../rtl/core/multiplier_unit.sv
+VERILOG_SOURCES += $(shell pwd)/../../rtl/core/muldiv_unit.sv
 
 # DMA
 VERILOG_SOURCES += $(shell pwd)/../../rtl/dma/pim_dma.sv
@@ -41,6 +41,7 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/spi_slave/rising_edge_detec
 
 # UART 
 VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/uart/uart_wrap.sv
+VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/uart/uart_wrap_test.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/uart/uart.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/uart/uart_transmitter.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/uart/uart_receiver.v

@@ -1,5 +1,6 @@
 
 module mpw_top #(
+    parameter bit FPGA           = 0,
     parameter XLEN              = 32,
     parameter CPU_CLOCK_FREQ    = 250_000_000,
     parameter RESET_PC          = 32'h1000_0000,
@@ -10,6 +11,10 @@ module mpw_top #(
     input                       RVRSTN,
 	// SYNC RESET
 	output						SYNCRSTN,
+
+    // UART SELECT
+    input                       orig_test_switch,
+
     //UART 
 	input						SERIALRX,
 	output logic				SERIALTX,
@@ -29,6 +34,7 @@ module mpw_top #(
 );
 
     core_top #(
+        .FPGA(FPGA)
         .XLEN(XLEN),
         .CPU_CLOCK_FREQ(CPU_CLOCK_FREQ),
         .RESET_PC(RESET_PC),
@@ -37,6 +43,7 @@ module mpw_top #(
         .clk_i(CLK),
         .rv_rst_ni(RVRSTN),
         .sync_rst_no(SYNCRSTN),
+        .orig_test_switch(orig_test_switch),
         .serial_rx_i(SERIALRX),
         .serial_tx_o(SERIALTX),
         .spi_rst_ni(SPIRSTN),

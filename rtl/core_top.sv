@@ -1,5 +1,6 @@
 
 module core_top #(
+    parameter bit FPGA          = 0,
     parameter XLEN              = 32,
     parameter CPU_CLOCK_FREQ    = 250_000_000,
     parameter RESET_PC          = 32'h1000_0000,
@@ -11,6 +12,7 @@ module core_top #(
 	// SYNC RESET
 	output						sync_rst_no,
     //UART 
+    input                       orig_test_switch,
 	input						serial_rx_i,
 	output logic				serial_tx_o,
 	
@@ -82,6 +84,8 @@ module core_top #(
     // UART
     logic [XLEN-1:0]            uart_addr;
     logic [XLEN-1:0]            uart_rd_data;
+    logic [XLEN-1:0]            uart_rd_data_orig;
+    logic [XLEN-1:0]            uart_rd_data_test;
     logic [XLEN-1:0]            uart_wr_data;
     logic [3:0]                 uart_size;  
     logic                       uart_read;
@@ -132,8 +136,10 @@ module core_top #(
 	logic						buf_read_1;
 	logic						buf_write_1;
 
-	logic serial_tx;
-	logic serial_rx;
+	logic serial_tx_orig;
+	logic serial_rx_orig;
+	logic serial_tx_test;
+	logic serial_rx_test;
 
 	logic rv_rst_n[0:4];
 	logic spi_rst_n[0:4];
@@ -189,7 +195,7 @@ module core_top #(
         .RESET_PC               (RESET_PC)
     ) core_0 (
         .clk_i                  (clk_i),
-        .rst_ni                (sync_rv_rst_n),
+        .rst_ni                 (sync_rv_rst_n),
 
         // instruction interface
         .instr_addr_o           (instr_addr),
@@ -260,7 +266,7 @@ module core_top #(
     // IDS BUS
     sys_bus bus_0 (
         .clk_i                  (clk_i), 
-        .rst_ni                (sync_bus_rst_n),
+        .rst_ni                 (sync_bus_rst_n),
 
     // MASTERS
     // RV IMEM
@@ -378,62 +384,125 @@ module core_top #(
         .miso_o                 (miso_o)
     );
 
-    // IMEM
-    sram_1024w_32b M0_0 (
-		.CLK 			(clk_i),
-		.CEN			(1'b0),
-        .GWEN           (imem_read),
-		.WEN			(~({4{imem_write}} & imem_size)),
-		.A 				(imem_addr[11:2]),     // 10-bit address
-		.D 				(imem_wr_data),
-		.EMA			(3'b000),
-		.RETN			(1'b1),
-		// outputs
-		.Q 				(imem_rd_data)
-	);
 
-    // DMEM
-    sram_1024w_32b M0_1 (
-		.CLK 			(clk_i),
-		.CEN			(1'b0),
-        .GWEN           (dmem_read),
-		.WEN			(~({4{dmem_write}} & dmem_size)),
-		.A 				(dmem_addr[11:2]),
-		.D 				(dmem_wr_data),
-		.EMA			(3'b000),
-		.RETN			(1'b1),
-		// outputs
-		.Q 				(dmem_rd_data)
-	);
 
-	// BUF_0
-	sram_4096w_32b M1_0 (
-		.CLK			(clk_i),
-		.CEN			(1'b0),
-		.GWEN			(buf_read_0),
-		.WEN			(~({4{buf_write_0}} & buf_size_0)),
-		.A				(buf_addr_0[13:2]),
-		.D				(buf_wr_data_0),
-		.EMA			(3'b000),
-		.RETN			(1'b1),
-		// outputs	
-		.Q				(buf_rd_data_0)
-	);
+    if (FPGA == 0) begin
+        // IMEM
+        sram_1024w_32b M0_0 (
+	    	.CLK 			(clk_i),
+	    	.CEN			(1'b0),
+            .GWEN           (imem_read),
+	    	.WEN			(~({4{imem_write}} & imem_size)),
+	    	.A 				(imem_addr[11:2]),     // 10-bit address
+	    	.D 				(imem_wr_data),
+	    	.EMA			(3'b000),
+	    	.RETN			(1'b1),
+	    	// outputs
+	    	.Q 				(imem_rd_data)
+	    );
+    
+        // DMEM
+        sram_1024w_32b M0_1 (
+	    	.CLK 			(clk_i),
+	    	.CEN			(1'b0),
+            .GWEN           (dmem_read),
+	    	.WEN			(~({4{dmem_write}} & dmem_size)),
+	    	.A 				(dmem_addr[11:2]),
+	    	.D 				(dmem_wr_data),
+	    	.EMA			(3'b000),
+	    	.RETN			(1'b1),
+	    	// outputs
+	    	.Q 				(dmem_rd_data)
+	    );
+    
+	    // BUF_0
+	    sram_4096w_32b M1_0 (
+	    	.CLK			(clk_i),
+	    	.CEN			(1'b0),
+	    	.GWEN			(buf_read_0),
+	    	.WEN			(~({4{buf_write_0}} & buf_size_0)),
+	    	.A				(buf_addr_0[13:2]),
+	    	.D				(buf_wr_data_0),
+	    	.EMA			(3'b000),
+	    	.RETN			(1'b1),
+	    	// outputs	
+	    	.Q				(buf_rd_data_0)
+	    );
+    
+	    // BUF_1
+	    sram_4096w_32b M1_1 (
+	    	.CLK			(clk_i),
+	    	.CEN			(1'b0),
+	    	.GWEN			(buf_read_1),
+	    	.WEN			(~({4{buf_write_1}} & buf_size_1)),
+	    	.A				(buf_addr_1[13:2]),
+	    	.D				(buf_wr_data_1),
+	    	.EMA			(3'b000),
+	    	.RETN			(1'b1),
+	    	// outputs
+	    	.Q				(buf_rd_data_1)
+	    );
+    end else begin
+        // IMEM
+        imem #(
+            .MEM_DEPTH              (4096),
+            .MEM_ADDR_WIDTH         (12)
+        ) imem_0 (
+            .i_clk                  (CLK),
 
-	// BUF_1
-	sram_4096w_32b M1_1 (
-		.CLK			(clk_i),
-		.CEN			(1'b0),
-		.GWEN			(buf_read_1),
-		.WEN			(~({4{buf_write_1}} & buf_size_1)),
-		.A				(buf_addr_1[13:2]),
-		.D				(buf_wr_data_1),
-		.EMA			(3'b000),
-		.RETN			(1'b1),
-		// outputs
-		.Q				(buf_rd_data_1)
-	);
+            .i_instr_addr           (imem_addr),
+            .o_instr_rd_data        (imem_rd_data),
+            .i_instr_wr_data        (imem_wr_data),
+            .i_instr_size           (imem_size),
+            .i_instr_write          (imem_write),
+            .i_instr_read           (imem_read)
+        );
 
+        // DMEM
+        dmem #(
+            .MEM_DEPTH              (4096),
+            .MEM_ADDR_WIDTH         (12)
+        ) dmem_0 (
+            .i_clk                  (CLK),
+
+            .i_data_addr            (dmem_addr),
+            .o_data_rd_data         (dmem_rd_data),
+            .i_data_wr_data         (dmem_wr_data),
+            .i_data_size            (dmem_size),
+            .i_data_write           (dmem_write),
+            .i_data_read            (dmem_read)
+        );
+
+        // weight and activation buffer
+        pim_buffer #(
+            .MEM_DEPTH              (16384),
+            .MEM_ADDR_WIDTH         (14)
+        ) buf_0 (
+            .i_clk                  (CLK),
+
+            .i_buf_addr             (buf_addr_0),
+            .o_buf_rd_data          (buf_rd_data_0),
+            .i_buf_wr_data          (buf_wr_data_0),
+            .i_buf_size             (buf_size_0),
+            .i_buf_write            (buf_write_0),
+            .i_buf_read             (buf_read_0)
+        );
+
+        pim_buffer #(
+            .MEM_DEPTH              (16384),
+            .MEM_ADDR_WIDTH         (14)
+        ) buf_1 (
+            .i_clk                  (CLK),
+
+            .i_buf_addr             (buf_addr_1),
+            .o_buf_rd_data          (buf_rd_data_1),
+            .i_buf_wr_data          (buf_wr_data_1),
+            .i_buf_size             (buf_size_1),
+            .i_buf_write            (buf_write_1),
+            .i_buf_read             (buf_read_1)
+        );
+    
+    end
 
 
     // on-chip uart
@@ -445,16 +514,39 @@ module core_top #(
         .UART_TRANS             (32'h8000_0008)
     ) on_chip_uart (
         .clk_i                  (clk_i), 
-        .rst_ni                (sync_rv_rst_n), 
+        .rst_ni                 (sync_rv_rst_n), 
         .uart_addr_i            (uart_addr),
         .uart_write_i           (uart_write),
         .uart_read_i            (uart_read),
         .uart_size_i            (uart_size),
         .uart_din_i             (uart_wr_data),
-        .uart_dout_o            (uart_rd_data),
-        .serial_rx_i            (serial_rx),
-        .serial_tx_o            (serial_tx)
+        .uart_dout_o            (uart_rd_data_orig),
+        .serial_rx_i            (serial_rx_orig),
+        .serial_tx_o            (serial_tx_orig)
     );
+
+    uart_wrap_test #(
+        .CLOCK_FREQ             (CPU_CLOCK_FREQ),
+        .BAUD_RATE              (BAUD_RATE),
+        .UART_CTRL              (32'h8000_0000),
+        .UART_RECV              (32'h8000_0004),
+        .UART_TRANS             (32'h8000_0008),
+        .UART_SYMBOL_EDGE_TIME  (32'h8000_000C),
+        .UART_SAMPLE_TIME       (32'h8000_0010)
+    ) on_chip_uart_test (
+        .clk_i                  (clk_i), 
+        .rst_ni                 (sync_rv_rst_n), 
+        .uart_addr_i            (uart_addr),
+        .uart_write_i           (uart_write),
+        .uart_read_i            (uart_read),
+        .uart_size_i            (uart_size),
+        .uart_din_i             (uart_wr_data),
+        .uart_dout_o            (uart_rd_data_test),
+        .serial_rx_i            (serial_rx_test),
+        .serial_tx_o            (serial_tx_test)
+    );
+
+    assign uart_rd_data = (orig_test_switch) ? uart_rd_data_orig : uart_rd_data_test;
 
 	// PIM controller INPUT/OUTPUT
 	always_ff @(posedge clk_i or negedge sync_bus_rst_n) begin
@@ -473,10 +565,26 @@ module core_top #(
 	always_ff @(posedge clk_i or negedge sync_rv_rst_n) begin
 		if (sync_rv_rst_n == '0) begin
 			serial_tx_o <= '0;
-			serial_rx <= '0;
 		end else begin
-			serial_rx <= serial_rx_i;
-			serial_tx_o <= serial_tx;
+            if (orig_test_switch) begin
+			    serial_tx_o <= serial_tx_orig;
+            end else begin
+			    serial_tx_o <= serial_tx_test;
+            end
+		end
+	end
+    always_ff @(posedge clk_i or negedge sync_rv_rst_n) begin
+		if (sync_rv_rst_n == '0) begin
+			serial_rx_test <= '0;
+			serial_rx_orig <= '0;
+		end else begin
+			serial_rx_test <= '0;
+			serial_rx_orig <= '0;
+            if (orig_test_switch) begin
+			    serial_rx_orig <= serial_rx_i;
+            end else begin
+			    serial_rx_test <= serial_rx_i;
+            end
 		end
 	end
 

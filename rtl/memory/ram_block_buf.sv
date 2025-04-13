@@ -3,14 +3,14 @@ module ram_block_buf #(
     parameter DMEM_DEPTH = 1024,		// dmem depth in a word (4 bytes, default: 1024 entries = 4 KB)
 	parameter DMEM_ADDR_WIDTH = 12
 ) (
-	input			                clk_i,
+	input			                i_clk,
 
-    input	[DMEM_ADDR_WIDTH-1:0]	addr_i,
-	input							write_i,
-	input							read_i,
-	input	[3:0]	                size_i,	// data size (LB, LH, LW)
-	input	[31:0]	                din_i,
-	output	[31:0]	                dout_o
+    input	[DMEM_ADDR_WIDTH-1:0]	i_addr,
+	input							i_write,
+	input							i_read,
+	input	[3:0]	                i_size,	// data size (LB, LH, LW)
+	input	[31:0]	                i_din,
+	output	[31:0]	                o_dout
 );
 
 	// memory entries. dmem is split into 4 banks to support various data granularity
@@ -25,16 +25,16 @@ module ram_block_buf #(
 	logic	[DMEM_ADDR_WIDTH-3:0]	addr_2;	// address for bank 2
 	logic	[DMEM_ADDR_WIDTH-3:0]	addr_3;	// address for bank 3
 	
-	assign addr_0 = addr_i[DMEM_ADDR_WIDTH-1:2];
-	assign addr_1 = addr_i[DMEM_ADDR_WIDTH-1:2];
-	assign addr_2 = addr_i[DMEM_ADDR_WIDTH-1:2];
-	assign addr_3 = addr_i[DMEM_ADDR_WIDTH-1:2];
+	assign addr_0 = i_addr[DMEM_ADDR_WIDTH-1:2];
+	assign addr_1 = i_addr[DMEM_ADDR_WIDTH-1:2];
+	assign addr_2 = i_addr[DMEM_ADDR_WIDTH-1:2];
+	assign addr_3 = i_addr[DMEM_ADDR_WIDTH-1:2];
 	
 	// data out from each bank
 	logic	[7:0]	dout_0, dout_1, dout_2, dout_3;
 	
-    always_ff @(posedge clk_i) begin
-		if (read_i) begin
+    always_ff @(posedge i_clk) begin
+		if (i_read) begin
         	dout_0 <= d0[addr_0];
         	dout_1 <= d1[addr_1];
         	dout_2 <= d2[addr_2];
@@ -42,16 +42,16 @@ module ram_block_buf #(
 		end
     end
 	
-	assign dout_o = {dout_3, dout_2, dout_1, dout_0};
+	assign o_dout = {dout_3, dout_2, dout_1, dout_0};
 	
 	// in the textbook, dmem does not receive the clock signal
 	// but clocked write operation is required for better operation and synthesis
 	// we must avoid latch for the normal cases
-	always_ff @ (posedge clk_i) begin
-		if ((size_i[0] && write_i)) d0[addr_0] <= din_i[7:0];
-		if ((size_i[1] && write_i)) d1[addr_1] <= din_i[15:8];
-		if ((size_i[2] && write_i)) d2[addr_2] <= din_i[23:16];
-		if ((size_i[3] && write_i)) d3[addr_3] <= din_i[31:24];
+	always_ff @ (posedge i_clk) begin
+		if ((i_size[0] && i_write)) d0[addr_0] <= i_din[7:0];
+		if ((i_size[1] && i_write)) d1[addr_1] <= i_din[15:8];
+		if ((i_size[2] && i_write)) d2[addr_2] <= i_din[23:16];
+		if ((i_size[3] && i_write)) d3[addr_3] <= i_din[31:24];
 	end
 
 endmodule
