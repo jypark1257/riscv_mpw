@@ -34,7 +34,7 @@ module mpw_top #(
 );
 
     core_top #(
-        .FPGA(FPGA)
+        .FPGA(FPGA),
         .XLEN(XLEN),
         .CPU_CLOCK_FREQ(CPU_CLOCK_FREQ),
         .RESET_PC(RESET_PC),

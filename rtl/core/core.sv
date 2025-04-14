@@ -1,7 +1,8 @@
-// `include "../headers/opcode.svh"
-// `include "../headers/pipe_reg.svh"
+//`include "../headers/opcode.svh"
+//`include "../headers/pipe_reg.svh"
 
 module core #(
+    parameter bit FPGA = 0,
     parameter XLEN = 32,
     parameter FLEN = 32,
     parameter RESET_PC = 32'h1000_0000
@@ -211,6 +212,7 @@ module core #(
     // --------------------------------------------------------
 
     core_ex_stage #(
+        .FPGA(FPGA),
         .XLEN(32)
     ) core_EX (
         .clk_i          (clk_i),

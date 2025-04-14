@@ -1,5 +1,15 @@
 #include "uart.h"
 
+void uart_init(uint32_t clock_frequency, uint32_t baud_rate)
+{
+    // uint32_t symbol_edge_time = clock_frequency / baud_rate;
+    // uint32_t sample_time = symbol_edge_time / 2;
+    uint32_t symbol_edge_time = 2605; // clock_frequency / baud_rate;
+    uint32_t sample_time = 1302; // symbol_edge_time / 2;
+    UTRAN_SYMBOL_EDGE_TIME = symbol_edge_time;
+    UTRAN_SAMPLE_TIME = sample_time;
+}
+
 void uwrite_int8(int8_t c)
 {
     while (!UTRAN_CTRL) ;

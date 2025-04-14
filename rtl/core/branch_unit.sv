@@ -1,4 +1,4 @@
-// `include "../RTL/headers/opcode.svh"
+//`include "../headers/opcode.svh"
 
 module branch_unit #(
     parameter XLEN = 32

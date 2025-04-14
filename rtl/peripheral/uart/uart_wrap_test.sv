@@ -105,7 +105,7 @@ module uart_wrap_test #(
         .data_in        (data_in),
         .data_in_valid  (data_in_valid),
         .data_out_ready (data_out_ready),
-        .serial_in      (i_serial_rx),
+        .serial_in      (serial_rx_i),
 
         .data_in_ready  (data_in_ready),
         .data_out       (data_out),

@@ -84,8 +84,6 @@ module core_top #(
     // UART
     logic [XLEN-1:0]            uart_addr;
     logic [XLEN-1:0]            uart_rd_data;
-    logic [XLEN-1:0]            uart_rd_data_orig;
-    logic [XLEN-1:0]            uart_rd_data_test;
     logic [XLEN-1:0]            uart_wr_data;
     logic [3:0]                 uart_size;  
     logic                       uart_read;
@@ -192,6 +190,7 @@ module core_top #(
 	end
 
     core #(
+        .FPGA                   (FPGA),
         .RESET_PC               (RESET_PC)
     ) core_0 (
         .clk_i                  (clk_i),
@@ -448,7 +447,7 @@ module core_top #(
             .MEM_DEPTH              (4096),
             .MEM_ADDR_WIDTH         (12)
         ) imem_0 (
-            .i_clk                  (CLK),
+            .i_clk                  (clk_i),
 
             .i_instr_addr           (imem_addr),
             .o_instr_rd_data        (imem_rd_data),
@@ -463,7 +462,7 @@ module core_top #(
             .MEM_DEPTH              (4096),
             .MEM_ADDR_WIDTH         (12)
         ) dmem_0 (
-            .i_clk                  (CLK),
+            .i_clk                  (clk_i),
 
             .i_data_addr            (dmem_addr),
             .o_data_rd_data         (dmem_rd_data),
@@ -478,7 +477,7 @@ module core_top #(
             .MEM_DEPTH              (16384),
             .MEM_ADDR_WIDTH         (14)
         ) buf_0 (
-            .i_clk                  (CLK),
+            .i_clk                  (clk_i),
 
             .i_buf_addr             (buf_addr_0),
             .o_buf_rd_data          (buf_rd_data_0),
@@ -492,7 +491,7 @@ module core_top #(
             .MEM_DEPTH              (16384),
             .MEM_ADDR_WIDTH         (14)
         ) buf_1 (
-            .i_clk                  (CLK),
+            .i_clk                  (clk_i),
 
             .i_buf_addr             (buf_addr_1),
             .o_buf_rd_data          (buf_rd_data_1),
@@ -504,28 +503,27 @@ module core_top #(
     
     end
 
-
     // on-chip uart
-    uart_wrap #(
-        .CLOCK_FREQ             (CPU_CLOCK_FREQ),
-        .BAUD_RATE              (BAUD_RATE),
-        .UART_CTRL              (32'h8000_0000),
-        .UART_RECV              (32'h8000_0004),
-        .UART_TRANS             (32'h8000_0008)
-    ) on_chip_uart (
-        .clk_i                  (clk_i), 
-        .rst_ni                 (sync_rv_rst_n), 
-        .uart_addr_i            (uart_addr),
-        .uart_write_i           (uart_write),
-        .uart_read_i            (uart_read),
-        .uart_size_i            (uart_size),
-        .uart_din_i             (uart_wr_data),
-        .uart_dout_o            (uart_rd_data_orig),
-        .serial_rx_i            (serial_rx_orig),
-        .serial_tx_o            (serial_tx_orig)
-    );
+    //uart_wrap #(
+    //    .CLOCK_FREQ             (CPU_CLOCK_FREQ),
+    //    .BAUD_RATE              (BAUD_RATE),
+    //    .UART_CTRL              (32'h8000_0000),
+    //    .UART_RECV              (32'h8000_0004),
+    //    .UART_TRANS             (32'h8000_0008)
+    //) on_chip_uart (
+    //    .clk_i                  (clk_i), 
+    //    .rst_ni                 (sync_rv_rst_n), 
+    //    .uart_addr_i            (uart_addr),
+    //    .uart_write_i           (uart_write),
+    //    .uart_read_i            (uart_read),
+    //    .uart_size_i            (uart_size),
+    //    .uart_din_i             (uart_wr_data),
+    //    .uart_dout_o            (uart_rd_data),
+    //    .serial_rx_i            (serial_rx_orig),
+    //    .serial_tx_o            (serial_tx_orig)
+    //);
 
-    uart_wrap_test #(
+    uart_wrap_test #( 
         .CLOCK_FREQ             (CPU_CLOCK_FREQ),
         .BAUD_RATE              (BAUD_RATE),
         .UART_CTRL              (32'h8000_0000),
@@ -541,12 +539,12 @@ module core_top #(
         .uart_read_i            (uart_read),
         .uart_size_i            (uart_size),
         .uart_din_i             (uart_wr_data),
-        .uart_dout_o            (uart_rd_data_test),
-        .serial_rx_i            (serial_rx_test),
-        .serial_tx_o            (serial_tx_test)
+        .uart_dout_o            (uart_rd_data),
+        .serial_rx_i            (serial_rx_orig),
+        .serial_tx_o            (serial_tx_orig)
     );
 
-    assign uart_rd_data = (orig_test_switch) ? uart_rd_data_orig : uart_rd_data_test;
+    //assign uart_rd_data = (orig_test_switch) ? uart_rd_data_orig : uart_rd_data_test;
 
 	// PIM controller INPUT/OUTPUT
 	always_ff @(posedge clk_i or negedge sync_bus_rst_n) begin
@@ -565,26 +563,10 @@ module core_top #(
 	always_ff @(posedge clk_i or negedge sync_rv_rst_n) begin
 		if (sync_rv_rst_n == '0) begin
 			serial_tx_o <= '0;
+			serial_rx_orig <= '0;
 		end else begin
-            if (orig_test_switch) begin
 			    serial_tx_o <= serial_tx_orig;
-            end else begin
-			    serial_tx_o <= serial_tx_test;
-            end
-		end
-	end
-    always_ff @(posedge clk_i or negedge sync_rv_rst_n) begin
-		if (sync_rv_rst_n == '0) begin
-			serial_rx_test <= '0;
-			serial_rx_orig <= '0;
-		end else begin
-			serial_rx_test <= '0;
-			serial_rx_orig <= '0;
-            if (orig_test_switch) begin
 			    serial_rx_orig <= serial_rx_i;
-            end else begin
-			    serial_rx_test <= serial_rx_i;
-            end
 		end
 	end
 

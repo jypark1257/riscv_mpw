@@ -28,23 +28,37 @@ module fpga_top(
     input i_serial_rx,
     output o_serial_tx
     );    
-    
+
+    // Clock wires
+    wire clk_in_bufg;
+    wire clkfb_out;
+    wire clkfb_buf;
+    wire clk_mmcm_out;
     wire sysclk;
+
+
+    // ─── Internal SPI/UART wires ───────────────────────────
     wire cpu_tx, cpu_rx;
     wire sclk, cs, mosi, miso;
 
-    // SPI IOB
+    // clock wiazard
+    clk_wiz_0 u_clk_wiz (
+        .clk_out1(sysclk),
+        .clk_in1_p(sysclk_p),
+        .clk_in1_n(sysclk_n)
+    );
+
+    // ─── SPI IOB ───────────────────────────────────────────
     (* IOB = "true" *) reg fpga_sclk_iob;
     (* IOB = "true" *) reg fpga_cs_iob;
     (* IOB = "true" *) reg fpga_mosi_iob;
     (* IOB = "true" *) reg fpga_miso_iob;
 
-
-    // UART IOB
+    // ─── UART IOB ──────────────────────────────────────────
     (* IOB = "true" *) reg fpga_serial_tx_iob;
     (* IOB = "true" *) reg fpga_serial_rx_iob;
 
-    
+    // ─── LED Control ───────────────────────────────────────
     always @(posedge sysclk or negedge spi_rst_ni) begin
         if (~spi_rst_ni) begin
             spi_rst_led <= 1'b0;
@@ -72,14 +86,8 @@ module fpga_top(
             rx_led <= ~fpga_serial_rx_iob;
         end
     end
-    
-    // clock wiazard
-    //clk_wiz_0 u_clk_wiz (
-    //    .clk_out1(sysclk),
-    //    .clk_in1_p(sysclk_p),
-    //    .clk_in1_n(sysclk_n)
-    //);
 
+    // ─── Core logic ────────────────────────────────────────
     mpw_top #(
         .FPGA(1),
         .CPU_CLOCK_FREQ(25_000_000),
@@ -104,8 +112,7 @@ module fpga_top(
         .PIMRD()
     );
 
-
-    // SPI IOB assign
+    // ─── SPI IOB logic ─────────────────────────────────────
     assign o_miso = fpga_miso_iob;
     assign sclk = fpga_sclk_iob;
     assign cs = fpga_cs_iob;
@@ -117,9 +124,7 @@ module fpga_top(
         fpga_mosi_iob <= i_mosi;
     end
 
-
-
-    // UART IOB assign
+    // ─── UART IOB logic ────────────────────────────────────
     assign o_serial_tx = fpga_serial_tx_iob;
     assign cpu_rx = fpga_serial_rx_iob;
     always @(posedge sysclk) begin
@@ -127,8 +132,4 @@ module fpga_top(
         fpga_serial_rx_iob <= i_serial_rx;
     end
 
-    
 endmodule
-
-
-

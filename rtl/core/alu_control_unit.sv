@@ -1,4 +1,4 @@
-// `include "../RTL/headers/opcode.svh"
+//`include "../headers/opcode.svh"
 
 module alu_ctrl_unit (
     input           [6:0]   opcode_i,

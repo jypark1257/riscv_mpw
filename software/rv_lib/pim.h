@@ -10,9 +10,9 @@
 void dump_buffer(uint32_t source_addr, uint32_t size);
 
 /* PIM functions */
-void pim_write(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
-void pim_compute(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
-void pim_load(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
-void pim_key(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
-void pim_vref(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
-void pim_mode(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
+//void pim_write(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
+//void pim_compute(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
+//void pim_load(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
+//void pim_key(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
+//void pim_vref(uint32_t source_addr, uint8_t sel_pim, uint32_t size);
+//void pim_mode(uint32_t source_addr, uint8_t sel_pim, uint32_t size);

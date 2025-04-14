@@ -143,10 +143,10 @@ set_property -dict { PACKAGE_PIN Y20   IOSTANDARD LVCMOS33 } [get_ports { i_seri
 #set_property -dict { PACKAGE_PIN AG17  IOSTANDARD LVCMOS18 } [get_ports { oled_vdd }]; #IO_L12N_T1_MRCC_32 Sch=oled_vdd
 
 ## PMOD Header JA
-set_property -dict { PACKAGE_PIN U27   IOSTANDARD LVCMOS33 } [get_ports { i_sclk }]; #IO_L13P_T2_MRCC_14 Sch=ja_p[1]
-set_property -dict { PACKAGE_PIN U28   IOSTANDARD LVCMOS33 } [get_ports { i_cs }]; #IO_L13N_T2_MRCC_14 Sch=ja_n[1]
-set_property -dict { PACKAGE_PIN T26   IOSTANDARD LVCMOS33 } [get_ports { i_mosi }]; #IO_L12P_T1_MRCC_14 Sch=ja_p[2]
-set_property -dict { PACKAGE_PIN T27   IOSTANDARD LVCMOS33 } [get_ports { o_miso }]; #IO_L12N_T1_MRCC_14 Sch=ja_n[2]
+set_property -dict { PACKAGE_PIN U27   IOSTANDARD LVCMOS33 } [get_ports { i_mosi }]; #IO_L13P_T2_MRCC_14 Sch=ja_p[1]
+set_property -dict { PACKAGE_PIN U28   IOSTANDARD LVCMOS33 } [get_ports { o_miso }]; #IO_L13N_T2_MRCC_14 Sch=ja_n[1]
+set_property -dict { PACKAGE_PIN T26   IOSTANDARD LVCMOS33 } [get_ports { i_sclk }]; #IO_L12P_T1_MRCC_14 Sch=ja_p[2]
+set_property -dict { PACKAGE_PIN T27   IOSTANDARD LVCMOS33 } [get_ports { i_cs }]; #IO_L12N_T1_MRCC_14 Sch=ja_n[2]
 #set_property -dict { PACKAGE_PIN T22   IOSTANDARD LVCMOS33 } [get_ports { ja[4] }]; #IO_L5P_T0_D06_14 Sch=ja_p[3]
 #set_property -dict { PACKAGE_PIN T23   IOSTANDARD LVCMOS33 } [get_ports { ja[5] }]; #IO_L5N_T0_D07_14 Sch=ja_n[3]
 #set_property -dict { PACKAGE_PIN T20   IOSTANDARD LVCMOS33 } [get_ports { ja[6] }]; #IO_L4P_T0_D04_14 Sch=ja_p[4]

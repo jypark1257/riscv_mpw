@@ -1,6 +1,7 @@
-// `include "../RTL/headers/opcode.svh"
+//`include "../headers/opcode.svh"
 
 module core_ex_stage #(
+    parameter bit FPGA = 0,
     parameter XLEN = 32
 ) (
     input                       clk_i,
@@ -127,6 +128,7 @@ module core_ex_stage #(
 
     // Multiplier and Divider
     muldiv_unit #(
+        .FPGA(FPGA),
         .NUM_STAGE(3)
     ) m_u (
         .clk_i(clk_i),

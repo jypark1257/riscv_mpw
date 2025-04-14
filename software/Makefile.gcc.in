@@ -24,7 +24,7 @@ LDSRC := ../linker_script.ld
 # 	LDSRC := ../prog_linker.ld
 # endif
 
-GCC_OPTS += -mabi=ilp32 -march=rv32im -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
+GCC_OPTS += -mabi=ilp32 -march=rv32i -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
 
 default: $(TARGET).elf
 
@@ -35,10 +35,10 @@ endif
 
 # objdump is called before strip because it inlines functions and makes the assembly harder to read
 $(TARGET).elf: $(SOURCES)
-	$(RISCV)-gcc $(GCC_OPTS) -I$(LIB_PATH) $^ -o $@
-	$(RISCV)-objdump -D -Mnumeric $@ > $(basename $@).dump
-	$(RISCV)-strip -R .comment -R .note.gnu.build-id $@
-	$(RISCV)-objcopy $(basename $@).elf -O binary $(basename $@).bin
+	$(RISCV_DEFAULT)-gcc $(GCC_OPTS) -I$(LIB_PATH) $^ -o $@
+	$(RISCV_DEFAULT)-objdump -D -Mnumeric $@ > $(basename $@).dump
+	$(RISCV_DEFAULT)-strip -R .comment -R .note.gnu.build-id $@
+	$(RISCV_DEFAULT)-objcopy $(basename $@).elf -O binary $(basename $@).bin
 	$(RISCV_DEFAULT)-bin2hex -w 32 $(basename $@).bin $(basename $@).hex
 	sed -i '1i @0' $(basename $@).hex
 # cp $(basename $@).hex ../../rtl/mem.hex

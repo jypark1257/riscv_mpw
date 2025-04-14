@@ -1,4 +1,4 @@
-// `include "../RTL/headers/opcode.svh"
+//`include "../headers/opcode.svh"
 
 module decoder (
     input           [6:0]   opcode_i,
