@@ -12,9 +12,6 @@ module mpw_top #(
 	// SYNC RESET
 	output						SYNCRSTN,
 
-    // UART SELECT
-    input                       orig_test_switch,
-
     //UART 
 	input						SERIALRX,
 	output logic				SERIALTX,
@@ -43,7 +40,6 @@ module mpw_top #(
         .clk_i(CLK),
         .rv_rst_ni(RVRSTN),
         .sync_rst_no(SYNCRSTN),
-        .orig_test_switch(orig_test_switch),
         .serial_rx_i(SERIALRX),
         .serial_tx_o(SERIALTX),
         .spi_rst_ni(SPIRSTN),

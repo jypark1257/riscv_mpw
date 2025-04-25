@@ -13,7 +13,10 @@ module dmem #(
 );
 
 	/* FPGA BRAM INSTANCE */
-	ram_block_dmem  dmem_sram(	
+	ram_block_dmem  #(
+    	.DMEM_DEPTH(MEM_DEPTH),
+    	.DMEM_ADDR_WIDTH(MEM_ADDR_WIDTH)
+	)  dmem_sram(	
 		.i_clk(i_clk),
 		.i_addr({i_data_addr[MEM_ADDR_WIDTH-1:2], 2'b00}),
 		.i_write(i_data_write),

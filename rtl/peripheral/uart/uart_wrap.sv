@@ -75,11 +75,11 @@ module uart_wrap #(
         end
     end
 
-    //UART
+    //UART_
     uart #(
         .CLOCK_FREQ(CLOCK_FREQ),
         .BAUD_RATE(BAUD_RATE)
-    ) on_chip_uart (
+    ) on_chip_uart_1 (
         .clk            (clk_i),
         .reset          (!rst_ni),
 

@@ -1,6 +1,7 @@
-//`include "../headers/opcode.svh"
-//`include "../headers/pipe_reg.svh"
-
+`ifndef COCOTB
+    `include "../headers/opcode.svh"
+    `include "../headers/pipe_reg.svh"
+`endif 
 module core #(
     parameter bit FPGA = 0,
     parameter XLEN = 32,
@@ -65,6 +66,7 @@ module core #(
     logic [2:0] mem_to_reg;
     logic [3:0] d_size;
     logic d_unsigned;
+    logic muldiv_en;
 
     logic [XLEN-1:0] wr_data;
     logic [XLEN-1:0] forward_in1;
@@ -72,6 +74,7 @@ module core #(
     logic [XLEN-1:0] alu_result;
     logic ex_mem_write;
     logic ex_valid;
+    logic ex_valid_pc;
 
     logic [XLEN-1:0] imm;
 
@@ -95,18 +98,25 @@ module core #(
         .XLEN(32),
         .RESET_PC(RESET_PC)
     ) core_IF (
-        .clk_i          (clk_i),
-        .rst_ni         (rst_ni),
-        .pc_write_i     (pc_write),
-        .branch_taken_i (branch_taken),
-        .pc_branch_i    (pc_branch),
-        .pc_curr_o      (pc_curr),
-        .pc_instr_o     (pc_instr)
+        .clk_i              (clk_i),
+        .rst_ni             (rst_ni),
+        .pc_write_i         (pc_write),
+        .branch_taken_i     (branch_taken),
+        .pc_branch_i        (pc_branch),
+        .pc_curr_o          (pc_curr),
+        .pc_instr_o         (pc_instr)
     );
+
+    logic valid_q;
+    logic valid_d;
+    logic invalid_instr_flush;
 
     // Instruction memory
     logic [XLEN-1:0] instr;
-    assign pc_write = ((!dma_stall) && (!ex_stall)) ? 1'b1 : 1'b0;
+    logic [XLEN-1:0] instr_compressed;
+    logic is_compressed;
+    logic is_next_instr_compressed;
+    assign pc_write = ((!dma_stall) && (!ex_stall_pc) && (!muldiv_en)) ? 1'b1 : 1'b0;
 
     // instruction memory interface
     assign instr_addr_o = (branch_taken) ? pc_branch : pc_curr;
@@ -115,17 +125,58 @@ module core #(
     assign instr_size_o = 4'b1111;        // always 32-bit access
     assign instr_read_o = ((!dma_stall) && (!ex_stall)) ? 1'b1 : 1'b0;
     assign instr_write_o = 1'b0;
+    // determine compressed instruction
+    assign is_compressed = (instr[1:0] != 2'b11);
+    always_comb begin
+        is_next_instr_compressed = '0;
+        if (is_compressed) begin
+            is_next_instr_compressed = (instr[17:16] != 2'b11);
+        end else begin
+            is_next_instr_compressed = '0;
+        end
+    end
 
+    // valid register
+    always_ff @(posedge clk_i or negedge rst_ni) begin
+        if (~rst_ni) begin
+            valid_q <= 1'b1;
+        end else begin
+            if (branch_taken) begin
+                valid_q <= 1'b1;
+            end else begin
+                valid_q <= valid_d;
+            end
+        end
+    end
+    
+    // determine if the instruction has to be ignored
+    always_comb begin
+        valid_d = 1'b0;
+        if (valid_q) begin  // 16b or 32l
+            if (is_compressed) begin    // 16b  
+                if (is_next_instr_compressed) begin // 16b, 16b
+                    valid_d = 1'b1;
+                end else begin  // 32l or 16b
+                    valid_d = 1'b1;
+                end
+            end else begin  // 32l
+                valid_d = 1'b0;
+            end
+        end else begin  // 32h
+            valid_d = 1'b1;
+        end
+    end
 
+    assign invalid_instr_flush = (valid_q == 1'b0);
 
     // --------------------------------------------------------
 
-    assign if_flush = (branch_taken) ? 1'b1 : 1'b0;
+    assign if_flush = (invalid_instr_flush || branch_taken) ? 1'b1 : 1'b0;
     assign if_stall = (dma_stall || ex_stall) ? 1'b1: 1'b0;
 
     // IF/ID pipeline register
     always_ff @(posedge clk_i or negedge rst_ni) begin
-        if (rst_ni == '0) begin
+        if (~rst_ni) begin
             id <= '0;
         end else begin
             if (if_flush) begin
@@ -134,7 +185,8 @@ module core #(
                 id <= id;
             end else begin
                 id.pc <= pc_instr;
-                id.instr <= instr;
+                id.is_compressed <= is_compressed;
+                id.instr <= instr; 
             end
         end
     end
@@ -144,28 +196,30 @@ module core #(
     core_id_stage #(
         .XLEN(32)
     ) core_ID (
-        .clk_i          (clk_i),
-        .rst_ni         (rst_ni),
-        .instr_i        (id.instr),
-        .rd_din_i       (rd_din),
-        .wb_rd_i        (wb.rd),
-        .wb_reg_write_i (wb.reg_write),
-        .opcode_o       (opcode),
-        .rd_o           (rd),
-        .funct3_o       (funct3),
-        .rs1_o          (rs1),
-        .rs2_o          (rs2),
-        .funct7_o       (funct7),
-        .imm_o          (imm),
-        .mem_read_o     (mem_read),
-        .mem_write_o    (mem_write),
-        .reg_write_o    (reg_write),
-        .mem_to_reg_o   (mem_to_reg),
-        .d_size_o       (d_size),
-        .d_unsigned_o   (d_unsigned),
-        .dma_en_o       (dma_en),
-        .rs1_dout_o     (rs1_dout),
-        .rs2_dout_o     (rs2_dout)
+        .clk_i              (clk_i),
+        .rst_ni             (rst_ni),
+        .is_compressed_i    (id.is_compressed),
+        .instr_i            (id.instr),
+        .rd_din_i           (rd_din),
+        .wb_rd_i            (wb.rd),
+        .wb_reg_write_i     (wb.reg_write),
+        .opcode_o           (opcode),
+        .rd_o               (rd),
+        .funct3_o           (funct3),
+        .rs1_o              (rs1),
+        .rs2_o              (rs2),
+        .funct7_o           (funct7),
+        .imm_o              (imm),
+        .mem_read_o         (mem_read),
+        .mem_write_o        (mem_write),
+        .reg_write_o        (reg_write),
+        .mem_to_reg_o       (mem_to_reg),
+        .d_size_o           (d_size),
+        .d_unsigned_o       (d_unsigned),
+        .dma_en_o           (dma_en),
+        .rs1_dout_o         (rs1_dout),
+        .rs2_dout_o         (rs2_dout),
+        .muldiv_en_o        (muldiv_en)
     );
 
 
@@ -236,10 +290,13 @@ module core #(
         .forward_in1_o  (forward_in1),
         .forward_in2_o  (forward_in2),
         .mul_result_o   (mul_result),        // M extension
-        .ex_valid_o     (ex_valid)
+        .ex_valid_o     (ex_valid),
+        .ex_valid_pc_o  (ex_valid_pc)
     );
 
     assign dma_stall = (dma_busy_i || ex.dma_en) ? 1'b1 : 1'b0;
+
+    assign ex_stall_pc = (!ex_valid_pc) ? 1'b1 : 1'b0;
 
     assign ex_stall = (!ex_valid) ? 1'b1 : 1'b0;
 
@@ -284,10 +341,10 @@ module core #(
     // --------------------------------------------------------
 
     always_ff @(posedge clk_i or negedge rst_ni) begin
-        if (rst_ni == '0) begin
+        if (~rst_ni) begin
             wb <= '0;
         end else begin
-            wb.pc_plus_4 <= ex.pc + 4;
+            wb.pc_plus_4 <= ex.pc + 2;
             wb.rd <= ex.rd;
             wb.imm <= ex.imm;
             wb.alu_result <= alu_result;
@@ -303,7 +360,7 @@ module core #(
 
     core_wb_stage #(
         .XLEN(32)
-    ) core_WB (
+    ) core_WB_0 (
         .d_size_i       (wb.d_size),
         .d_unsigned_i   (wb.d_unsigned),
         .mem_to_reg_i   (wb.mem_to_reg),

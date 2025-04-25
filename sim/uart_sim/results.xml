@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1745156304" />
+    <testcase name="rvtest_uart" classname="test_asm" file="/home/pjy-ubuntu/riscv_mpw/sim/uart_sim/test_asm.py" lineno="19" time="9.040724515914917" sim_time_ns="110725.001" ratio_time="12247.359247047545" />
+  </testsuite>
+</testsuites>

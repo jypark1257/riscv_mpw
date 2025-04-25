@@ -92,15 +92,15 @@ module uart_wrap_test #(
     end
 
     //UART
-    uart_test #(
+    uart #(
         .CLOCK_FREQ(CLOCK_FREQ),
         .BAUD_RATE(BAUD_RATE)
     ) on_chip_uart (
         .clk            (clk_i),
         .reset          (!rst_ni),
 
-        .symbol_edge_time(symbol_edge_time),
-        .sample_time(sample_time),
+        //.symbol_edge_time(symbol_edge_time),
+        //.sample_time(sample_time),
 
         .data_in        (data_in),
         .data_in_valid  (data_in_valid),

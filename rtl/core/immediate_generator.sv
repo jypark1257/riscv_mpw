@@ -1,4 +1,6 @@
-//`include "../headers/opcode.svh"
+`ifndef COCOTB
+    `include "../headers/opcode.svh"
+`endif 
 
 module immediate_generator (
     input           [6:0]   opcode_i,

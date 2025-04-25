@@ -13,9 +13,12 @@ module imem #(
 );
 
 	/* FPGA BRAM INSTANCE */
-	ram_block_imem  imem_sram(	
+	ram_block_imem  #(
+    	.IMEM_DEPTH(MEM_DEPTH),
+    	.IMEM_ADDR_WIDTH(MEM_ADDR_WIDTH)
+	) imem_sram(	
 		.i_clk(i_clk),
-		.i_addr({i_instr_addr[MEM_ADDR_WIDTH-1:2], 2'b00}),
+		.i_addr(i_instr_addr[MEM_ADDR_WIDTH-1:0]),
 		.i_we(i_instr_write),
 		.i_size(i_instr_size),
 		.i_din(i_instr_wr_data),

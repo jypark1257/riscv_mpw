@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1745068877" />
+    <testcase name="rvtest_add" classname="test_fifo_unit" file="/home/pjy-ubuntu/riscv_mpw/sim/fifio_sim/test_fifo_unit.py" lineno="19" time="0.005759716033935547" sim_time_ns="306.001" ratio_time="53127.792793443165" />
+  </testsuite>
+</testsuites>

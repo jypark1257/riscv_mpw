@@ -1,5 +1,6 @@
-//`include "../headers/opcode.svh"
-
+`ifndef COCOTB
+    `include "../headers/opcode.svh"
+`endif 
 module branch_unit #(
     parameter XLEN = 32
 ) (

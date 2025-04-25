@@ -1,0 +1,8 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1745153667" />
+    <testcase name="rvtest_add" classname="test_asm" file="/home/pjy-ubuntu/riscv_mpw/sim/asm_sim_fpga/test_asm.py" lineno="19" time="4.121025085449219" sim_time_ns="130265.001" ratio_time="31609.853931719095">
+      <failure message="Test failed with RANDOM_SEED=1745153667" />
+    </testcase>
+  </testsuite>
+</testsuites>

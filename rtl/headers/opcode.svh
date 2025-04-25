@@ -1,18 +1,18 @@
 // OPCODES 
-`define OPCODE_R            7'b01_100_11
-`define OPCODE_I            7'b00_100_11
-`define OPCODE_BRANCH       7'b11_000_11
-`define OPCODE_STORE        7'b01_000_11
-`define OPCODE_LOAD         7'b00_000_11
-`define OPCODE_JALR         7'b11_001_11
-`define OPCODE_JAL          7'b11_01111
-`define OPCODE_AUIPC        7'b00_101_11
-`define OPCODE_LUI          7'b01_101_11
-`define OPCODE_SYSTEM       7'b11_100_11    // CSRXX, ECALL (NOT IMPLEMENTED), EBREAK (NOT IMPLEMENTED)
-`define OPCODE_PIM          7'b00_010_11
-`define OPCODE_CUSTON_1     7'b01_010_11
-`define OPCODE_CUSTON_2     7'b10_110_11  // custom / rv128
-`define OPCODE_CUSTON_3     7'b11_110_11  // custom / rv128
+`define OPCODE_R            7'b0110011
+`define OPCODE_I            7'b0010011
+`define OPCODE_BRANCH       7'b1100011
+`define OPCODE_STORE        7'b0100011
+`define OPCODE_LOAD         7'b0000011
+`define OPCODE_JALR         7'b1100111
+`define OPCODE_JAL          7'b1101111
+`define OPCODE_AUIPC        7'b0010111
+`define OPCODE_LUI          7'b0110111
+`define OPCODE_SYSTEM       7'b1110011    // CSRXX, ECALL (NOT IMPLEMENTED), EBREAK (NOT IMPLEMENTED)
+`define OPCODE_PIM          7'b0001011
+`define OPCODE_CUSTON_1     7'b0101011
+`define OPCODE_CUSTON_2     7'b1011011  // custom / rv128
+`define OPCODE_CUSTON_3     7'b1111011  // custom / rv128
 
 // FUNCT3 (ALU)
 `define FUNCT3_ADD_SUB      3'b000

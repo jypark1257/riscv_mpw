@@ -75,7 +75,7 @@ module mpw_sim;
     );
 
     // Instantiate the DUT (Design Under Test)
-   mpw_top mpw_top_0 (
+    mpw_top mpw_top_0 (
         .i_clk (i_clk),
         .i_rv_rst_n(i_rv_rst_n),
         .i_spi_rst_n(i_spi_rst_n),
@@ -85,7 +85,7 @@ module mpw_sim;
         .miso(miso),
         .i_serial_rx(serial_in),
         .o_serial_tx(serial_out),
-	.o_sync_rst_n(o_sync_rst_n)
+	    .o_sync_rst_n(o_sync_rst_n)
     );
 
      // Clock generation

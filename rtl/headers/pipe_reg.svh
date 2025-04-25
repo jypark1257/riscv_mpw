@@ -1,6 +1,7 @@
 // Pipe reg: IF/ID
 typedef struct packed {
     logic   [31:0]  pc;
+    logic           is_compressed;
     logic   [31:0]  instr;
 } pipe_if_id;
 

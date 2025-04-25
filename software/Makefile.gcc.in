@@ -24,7 +24,7 @@ LDSRC := ../linker_script.ld
 # 	LDSRC := ../prog_linker.ld
 # endif
 
-GCC_OPTS += -mabi=ilp32 -march=rv32i -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
+GCC_OPTS += -mabi=ilp32 -march=rv32im -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
 
 default: $(TARGET).elf
 

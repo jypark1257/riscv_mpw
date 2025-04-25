@@ -4,6 +4,7 @@ module core_id_stage #(
 ) (
     input                       clk_i,
     input                       rst_ni,
+    input                       is_compressed_i,
     input           [XLEN-1:0]  instr_i,
     input           [XLEN-1:0]  rd_din_i,
     input           [4:0]       wb_rd_i,
@@ -23,16 +24,31 @@ module core_id_stage #(
     output  logic               dma_en_o,
     output  logic   [XLEN-1:0]  imm_o,
     output  logic   [XLEN-1:0]  rs1_dout_o,
-    output  logic   [XLEN-1:0]  rs2_dout_o
+    output  logic   [XLEN-1:0]  rs2_dout_o,
+    output  logic               muldiv_en_o
 );
 
+    logic [XLEN-1:0] executing_instruction_debug;
+    logic [XLEN-1:0] instr_decompressed;
+    logic [XLEN-1:0] instr;
+
+    compressed_decoder c_dec_u(
+        .clk_i(clk_i),
+        .rst_ni(rst_ni),
+        .instr_i(instr_i),
+        .instr_o(instr_decompressed),
+        .illegal_instr_o()
+    );
+    assign executing_instruction_debug = (is_compressed_i) ? {16'b0, instr_i[15:0]} : instr_i;
+    assign instr = (is_compressed_i) ? instr_decompressed : instr_i;
+
     // instruction parsing
-    assign opcode_o = instr_i[6:0];
-    assign rd_o = instr_i[11:7];
-    assign funct3_o = instr_i[14:12];
-    assign rs1_o = instr_i[19:15];
-    assign rs2_o = instr_i[24:20];
-    assign funct7_o = instr_i[31:25];
+    assign opcode_o = instr[6:0];
+    assign rd_o = instr[11:7];
+    assign funct3_o = instr[14:12];
+    assign rs1_o = instr[19:15];
+    assign rs2_o = instr[24:20];
+    assign funct7_o = instr[31:25];
     
     // Main control unit
     decoder dec_u (
@@ -47,7 +63,8 @@ module core_id_stage #(
         .mem_to_reg_o   (mem_to_reg_o),
         .mem_read_o     (mem_read_o),
         .mem_write_o    (mem_write_o),
-        .dma_en_o       (dma_en_o)
+        .dma_en_o       (dma_en_o),
+        .muldiv_en_o    (muldiv_en_o)
     );
 
     // Immrdiate generator

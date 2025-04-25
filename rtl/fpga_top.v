@@ -1,12 +1,9 @@
 `timescale 1ns / 1ps
-
 module fpga_top(
     input sysclk_n,
     input sysclk_p,
     input rst_ni,
     input spi_rst_ni,
-
-    input orig_test_switch,
 
     // SPI
     input i_sclk,
@@ -92,12 +89,10 @@ module fpga_top(
         .FPGA(1),
         .CPU_CLOCK_FREQ(25_000_000),
         .BAUD_RATE  (115200)
-    ) u_core_top (
+    ) u_core_top_0 (
         .CLK(sysclk),
         .RVRSTN(rst_ni),
         .SPIRSTN(spi_rst_ni),
-
-        .orig_test_switch(orig_test_switch),   
         // SPI
         .SCLK(sclk),
         .CS(cs),

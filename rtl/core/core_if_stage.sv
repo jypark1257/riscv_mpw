@@ -14,13 +14,26 @@ module core_if_stage #(
 
     // Program counter
     logic [XLEN-1:0] pc_next;
-    logic [XLEN-1:0] pc_plus_4;
-    logic [XLEN-1:0] pc_branch_plus_4;
+    logic [XLEN-1:0] pc_plus_2;
+    //logic [XLEN-1:0] pc_plus_4;
+    logic [XLEN-1:0] pc_branch_plus_2;
+    //logic [XLEN-1:0] pc_branch_plus_4;
 
-    assign pc_plus_4 = pc_curr_o + 4;
-    assign pc_branch_plus_4 = pc_branch_i + 4;
+    assign pc_plus_2 = pc_curr_o + 2;
+    //assign pc_plus_4 = pc_curr_o + 4;
+    assign pc_branch_plus_2 = pc_branch_i + 2;
+    //assign pc_branch_plus_4 = pc_branch_i + 4;
 
-    assign pc_next = (branch_taken_i) ? pc_branch_plus_4 : pc_plus_4;
+    always_comb begin
+        pc_next  = RESET_PC;
+        if (branch_taken_i) begin
+            pc_next = pc_branch_plus_2;
+        end else begin
+            pc_next = pc_plus_2;
+        end
+    end
+
+    // assign pc_next = (branch_taken_i) ? pc_branch_plus_4 : pc_plus_4;
 
     program_counter #(
         .XLEN       (XLEN),

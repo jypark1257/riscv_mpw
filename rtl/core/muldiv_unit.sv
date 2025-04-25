@@ -1,4 +1,6 @@
-//`include "../headers/opcode.svh"
+`ifndef COCOTB
+    `include "../headers/opcode.svh"
+`endif 
 
 module muldiv_unit #(
     parameter bit FPGA = 0,
@@ -14,6 +16,7 @@ module muldiv_unit #(
     input           [2:0]       funct3_i,
     output  logic   [XLEN-1:0]  result_o,
     output  logic               is_muldiv_o,
+    output  logic               valid_pc_o,
     output  logic               valid_o
 );
 
@@ -262,6 +265,7 @@ module muldiv_unit #(
     end
     
     // output valid
+    assign valid_pc_o = valid_counter[NUM_PIPES-2];
     assign valid_o = valid_counter[NUM_PIPES-1];
 
 

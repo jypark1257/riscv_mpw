@@ -1,21 +1,22 @@
-
-module ram_block_imem #(	
-    parameter DMEM_DEPTH = 1024,		// dmem depth in a word (4 bytes, default: 1024 entries = 4 KB)
-	parameter DMEM_ADDR_WIDTH = 12
+module ram_block_imem #(
+    parameter IMEM_DEPTH = 1024,
+    parameter IMEM_ADDR_WIDTH = 12
 ) (
-	input			                i_clk,
-
-    input	[DMEM_ADDR_WIDTH-1:0]	i_addr,
-	input			                i_we,		// write enable
-	input	[3:0]	                i_size,	// data size (LB, LH, LW)
-	input	[31:0]	                i_din,
-	output	[31:0]	                o_dout
+    input                       i_clk,
+    input [IMEM_ADDR_WIDTH-1:0] i_addr,
+    input                       i_we,
+    input [3:0]                 i_size,
+    input [31:0]                i_din,
+    output logic [31:0]         o_dout
 );
-	// memory entries. dmem is split into 4 banks to support various data granularity
-	(* ram_style="block" *) logic	[7:0]	d0[0:DMEM_DEPTH-1];
-	(* ram_style="block" *) logic	[7:0]	d1[0:DMEM_DEPTH-1];
-	(* ram_style="block" *) logic	[7:0]	d2[0:DMEM_DEPTH-1];
-	(* ram_style="block" *) logic	[7:0]	d3[0:DMEM_DEPTH-1];
+
+    localparam DEPTH_WORD = IMEM_DEPTH;
+
+    // Declare BRAM for each byte lane
+    (* ram_style = "block" *) logic [7:0] d0 [0:DEPTH_WORD-1];
+    (* ram_style = "block" *) logic [7:0] d1 [0:DEPTH_WORD-1];
+    (* ram_style = "block" *) logic [7:0] d2 [0:DEPTH_WORD-1];
+    (* ram_style = "block" *) logic [7:0] d3 [0:DEPTH_WORD-1];
 
     initial begin
         $readmemh("imem_0.mem", d0);
@@ -24,37 +25,53 @@ module ram_block_imem #(
         $readmemh("imem_3.mem", d3);
     end
 
-    // address for each bank
-	logic	[DMEM_ADDR_WIDTH-3:0]	addr_0;	// address for bank 0
-	logic	[DMEM_ADDR_WIDTH-3:0]	addr_1;	// address for bank 1
-	logic	[DMEM_ADDR_WIDTH-3:0]	addr_2;	// address for bank 2
-	logic	[DMEM_ADDR_WIDTH-3:0]	addr_3;	// address for bank 3
-	
-	assign addr_0 = i_addr[DMEM_ADDR_WIDTH-1:2];
-	assign addr_1 = i_addr[DMEM_ADDR_WIDTH-1:2];
-	assign addr_2 = i_addr[DMEM_ADDR_WIDTH-1:2];
-	assign addr_3 = i_addr[DMEM_ADDR_WIDTH-1:2];
-	
-	// data out from each bank
-	logic	[7:0]	dout_0, dout_1, dout_2, dout_3;
-	
+    // Base address and next word address
+    logic [IMEM_ADDR_WIDTH-3:0] base_addr;
+    logic [IMEM_ADDR_WIDTH-3:0] next_addr;
+
+    assign base_addr = i_addr[IMEM_ADDR_WIDTH-1:2];
+    assign next_addr = base_addr + 1;
+
+    // Read byte offset
+    logic [1:0] byte_offset;
+
+    // Read registers
+    logic [7:0] d0_r0, d1_r0, d2_r0, d3_r0;
+    logic [7:0] d0_r1, d1_r1, d2_r1, d3_r1;
+
     always_ff @(posedge i_clk) begin
-        dout_0 <= d0[addr_0];
-        dout_1 <= d1[addr_1];
-        dout_2 <= d2[addr_2];
-        dout_3 <= d3[addr_3];
+        d0_r0 <= d0[base_addr];
+        d1_r0 <= d1[base_addr];
+        d2_r0 <= d2[base_addr];
+        d3_r0 <= d3[base_addr];
+
+        d0_r1 <= d0[next_addr];
+        d1_r1 <= d1[next_addr];
+        d2_r1 <= d2[next_addr];
+        d3_r1 <= d3[next_addr];
+
+        byte_offset <= i_addr[1:0];
     end
-	
-	assign o_dout = {dout_3, dout_2, dout_1, dout_0};
-	
-	// in the textbook, dmem does not receive the clock signal
-	// but clocked write operation is required for better operation and synthesis
-	// we must avoid latch for the normal cases
-	always_ff @ (posedge i_clk) begin
-		if ((i_size[0] && i_we)) d0[addr_0] <= i_din[7:0];
-		if ((i_size[1] && i_we)) d1[addr_1] <= i_din[15:8];
-		if ((i_size[2] && i_we)) d2[addr_2] <= i_din[23:16];
-		if ((i_size[3] && i_we)) d3[addr_3] <= i_din[31:24];
-	end
+
+    // Read mux for unaligned access
+    always_comb begin
+        case (byte_offset)
+            2'b00: o_dout = {d3_r0, d2_r0, d1_r0, d0_r0};
+            2'b01: o_dout = {d0_r1, d3_r0, d2_r0, d1_r0};
+            2'b10: o_dout = {d1_r1, d0_r1, d3_r0, d2_r0};
+            2'b11: o_dout = {d2_r1, d1_r1, d0_r1, d3_r0};
+            default: o_dout = 32'hXXXX_XXXX;
+        endcase
+    end
+
+    // Aligned write only
+    always_ff @(posedge i_clk) begin
+        if (i_we) begin
+            if (i_size[0]) d0[base_addr] <= i_din[7:0];
+            if (i_size[1]) d1[base_addr] <= i_din[15:8];
+            if (i_size[2]) d2[base_addr] <= i_din[23:16];
+            if (i_size[3]) d3[base_addr] <= i_din[31:24];
+        end
+    end
 
 endmodule
