@@ -24,7 +24,7 @@ LDSRC := ../linker_script.ld
 # 	LDSRC := ../prog_linker.ld
 # endif
 
-GCC_OPTS += -mabi=ilp32 -march=rv32im -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
+GCC_OPTS += -mabi=ilp32 -march=rv32imc -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
 
 default: $(TARGET).elf
 
@@ -40,7 +40,7 @@ $(TARGET).elf: $(SOURCES)
 	$(RISCV_DEFAULT)-strip -R .comment -R .note.gnu.build-id $@
 	$(RISCV_DEFAULT)-objcopy $(basename $@).elf -O binary $(basename $@).bin
 	$(RISCV_DEFAULT)-bin2hex -w 32 $(basename $@).bin $(basename $@).hex
-	sed -i '1i @0' $(basename $@).hex
+	# sed -i '1i @0' $(basename $@).hex
 # cp $(basename $@).hex ../../rtl/mem.hex
 
 clean:

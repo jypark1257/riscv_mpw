@@ -45,11 +45,11 @@ void dump_buffer(uint32_t source_addr, uint32_t size) {
 
 void pim_write(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
-    asm volatile ( 
-        "pim_write %[a], 0(%[b])\n\t"
-        :
-        : [a] "r" (source_addr), [b] "r" (size)
-    );
+    //asm volatile ( 
+    //    "pim_write %[a], 0(%[b])\n\t"
+    //    :
+    //    : [a] "r" (source_addr), [b] "r" (size)
+    //);
 
     //switch (sel_pim) {
     //    case 1:
@@ -92,11 +92,11 @@ void pim_write(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
 void pim_compute(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
-    asm volatile ( 
-        "pim_compute %[a], 0(%[b])\n\t"
-        :
-        : [a] "r" (source_addr), [b] "r" (size)
-    );
+    //asm volatile ( 
+    //    "pim_compute %[a], 0(%[b])\n\t"
+    //    :
+    //    : [a] "r" (source_addr), [b] "r" (size)
+    //);
 
     //switch (sel_pim) {
     //    case 1:
@@ -139,20 +139,20 @@ void pim_compute(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
 void pim_load(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
     
-    asm volatile ( 
-        "pim_load %[a], 0(%[b])\n\t"
-        :
-        : [a] "r" (source_addr), [b] "r" (size)
-    );
+    //asm volatile ( 
+    //    "pim_load %[a], 0(%[b])\n\t"
+    //    :
+    //    : [a] "r" (source_addr), [b] "r" (size)
+    //);
 }
 
 void pim_key(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
-    asm volatile ( 
-        "pim_key %[a], 0(%[b])\n\t"
-        :
-        : [a] "r" (source_addr), [b] "r" (size)
-    );
+    //asm volatile ( 
+    //    "pim_key %[a], 0(%[b])\n\t"
+    //    :
+    //    : [a] "r" (source_addr), [b] "r" (size)
+    //);
 
     //switch (sel_pim) {
     //    case 1:
@@ -196,20 +196,20 @@ void pim_key(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
 void pim_vref(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
-    asm volatile ( 
-        "pim_vref %[a], 0(%[b])\n\t"
-        :
-        : [a] "r" (source_addr), [b] "r" (size)
-    );
+    //asm volatile ( 
+    //    "pim_vref %[a], 0(%[b])\n\t"
+    //    :
+    //    : [a] "r" (source_addr), [b] "r" (size)
+    //);
     return;
 }
 
 void pim_mode(uint32_t source_addr, uint8_t sel_pim, uint32_t size) {
 
-    asm volatile ( 
-        "pim_mode %[a], 0(%[b])\n\t"
-        :
-        : [a] "r" (source_addr), [b] "r" (size)
-    );
+    //asm volatile ( 
+    //    "pim_mode %[a], 0(%[b])\n\t"
+    //    :
+    //    : [a] "r" (source_addr), [b] "r" (size)
+    //);
     return;
 }

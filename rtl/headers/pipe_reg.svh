@@ -8,6 +8,7 @@ typedef struct packed {
 // Pipe reg: ID/EX
 typedef struct packed {
     logic   [31:0]  pc;
+    logic           is_compressed;
     logic   [6:0]   opcode;
     logic   [4:0]   rd;         // rd for regfile
     logic   [2:0]   funct3;

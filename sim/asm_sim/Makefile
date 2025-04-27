@@ -70,7 +70,6 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_dmem.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_buf.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_1024w_8b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_1024w_32b.v
-VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_8b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_32b.v
 # VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_8192w_32b.v
 

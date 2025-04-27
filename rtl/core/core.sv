@@ -152,15 +152,19 @@ module core #(
     // determine if the instruction has to be ignored
     always_comb begin
         valid_d = 1'b0;
-        if (valid_q) begin  // 16b or 32l
+        if (valid_q) begin  // 16b or 32l or init
             if (is_compressed) begin    // 16b  
                 if (is_next_instr_compressed) begin // 16b, 16b
                     valid_d = 1'b1;
-                end else begin  // 32l or 16b
+                end else begin  // 32l
                     valid_d = 1'b1;
                 end
             end else begin  // 32l
-                valid_d = 1'b0;
+                if (pc_curr == RESET_PC) begin // initial instruction
+                    valid_d = 1'b1;
+                end else begin
+                    valid_d = 1'b0;
+                end
             end
         end else begin  // 32h
             valid_d = 1'b1;
@@ -243,6 +247,7 @@ module core #(
                 ex <= ex;
             end else begin
                 ex.pc <= id.pc;
+                ex.is_compressed <= id.is_compressed;
                 ex.opcode <= opcode;
                 ex.rd <= rd;
                 ex.funct3 <= funct3;
@@ -344,7 +349,7 @@ module core #(
         if (~rst_ni) begin
             wb <= '0;
         end else begin
-            wb.pc_plus_4 <= ex.pc + 2;
+            wb.pc_plus_4 <= (ex.is_compressed) ? (ex.pc + 2) : (ex.pc + 4);
             wb.rd <= ex.rd;
             wb.imm <= ex.imm;
             wb.alu_result <= alu_result;

@@ -3,6 +3,7 @@
 4-stage, in-order core which implements the 32-bit RISC-V instruction set. 
 - [v] Base Instruction (RV32I)
 - [v] M Extension (RV32M)
+- [v] C Extension (RV32C)
 
 Peripherals
 - [v] UART
