@@ -490,13 +490,12 @@ module core_top #(
 	    	// outputs
 	    	.Q 				(dmem_rd_data)
 	    );
-//    
 //	    // BUF_0
 //	    sram_4096w_32b M1_0 (
 //	    	.CLK			(clk_i),
 //	    	.CEN			(1'b0),
 //	    	.GWEN			(buf_read_0),
-//	    	.WEN			(~({4{buf_write_0}} & buf_size_0)),
+//	    	.WEN			(~({4s{buf_write_0}} & buf_size_0)),
 //	    	.A				(buf_addr_0[13:2]),
 //	    	.D				(buf_wr_data_0),
 //	    	.EMA			(3'b000),
