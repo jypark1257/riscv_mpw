@@ -1,5 +1,5 @@
 `ifndef COCOTB
-    `include "../rtl/headers/opcode.svh"
+    `include "../headers/opcode.svh"
 `endif 
 
 module alu_ctrl_unit (
