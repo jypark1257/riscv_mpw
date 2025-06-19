@@ -7,15 +7,13 @@ module core_top #(
     parameter BAUD_RATE         = 115200
 ) (
     input                       clk_i,
-    // CORE RESET
+    // CORE RESET (SYNC)
     input                       rv_rst_ni,
-	// SYNC RESET
-	output						sync_rst_no,
     //UART 
 	input						serial_rx_i,
 	output logic				serial_tx_o,
 	
-	// SPI RESET
+	// SPI RESET (SYNC)
     input                       spi_rst_ni,
     // SPI
     input                       sclk_i,
@@ -30,9 +28,6 @@ module core_top #(
 );
 	
 	logic						cs_reg;
-
-	logic						sync_spi_rst_n;
-    logic                       sync_rv_rst_n;
     logic                       sync_bus_rst_n;
 
 
@@ -138,50 +133,12 @@ module core_top #(
 	logic serial_tx_test;
 	logic serial_rx_test;
 
-	logic rv_rst_n[0:4];
-	logic spi_rst_n[0:4];
-	always_ff @(posedge clk_i or negedge rv_rst_ni) begin
-		if (rv_rst_ni == '0) begin
-			rv_rst_n[0] <= '0;
-			rv_rst_n[1] <= '0;
-			rv_rst_n[2] <= '0;
-			rv_rst_n[3] <= '0;
-			rv_rst_n[4] <= '0;
-		end else begin
-			rv_rst_n[0] <= rv_rst_ni;
-			rv_rst_n[1] <= rv_rst_n[0];
-			rv_rst_n[2] <= rv_rst_n[1];
-			rv_rst_n[3] <= rv_rst_n[2];
-			rv_rst_n[4] <= rv_rst_n[3];
-		end
-	end
-	assign sync_rv_rst_n = rv_rst_n[4];
-	assign sync_rst_no = sync_rv_rst_n;
-    
-	always_ff @(posedge clk_i or negedge spi_rst_ni) begin
-		if (spi_rst_ni == '0) begin
-			spi_rst_n[0] <= '0;
-			spi_rst_n[1] <= '0;
-			spi_rst_n[2] <= '0;
-			spi_rst_n[3] <= '0;
-			spi_rst_n[4] <= '0;
-		end else begin
-			spi_rst_n[0] <= spi_rst_ni;
-			spi_rst_n[1] <= spi_rst_n[0];
-			spi_rst_n[2] <= spi_rst_n[1];
-			spi_rst_n[3] <= spi_rst_n[2];
-			spi_rst_n[4] <= spi_rst_n[3];
-		end	
-	end
-	assign sync_spi_rst_n = spi_rst_n[4];
-
-
     // BUS rst_n
-    assign sync_bus_rst_n = sync_rv_rst_n || sync_spi_rst_n;
+    assign sync_bus_rst_n = rv_rst_ni || spi_rst_ni;
 
 
-	always_ff @(posedge clk_i or negedge sync_spi_rst_n) begin
-		if(sync_spi_rst_n == '0) begin
+	always_ff @(posedge clk_i or negedge spi_rst_ni) begin
+		if(spi_rst_ni == '0) begin
 			cs_reg <= '0;
 		end else begin
 			cs_reg <= cs_i;
@@ -193,7 +150,7 @@ module core_top #(
         .RESET_PC               (RESET_PC)
     ) core_0 (
         .clk_i                  (clk_i),
-        .rst_ni                 (sync_rv_rst_n),
+        .rst_ni                 (rv_rst_ni),
 
         // instruction interface
         .instr_addr_o           (instr_addr),
@@ -234,7 +191,7 @@ module core_top #(
 		.PIM_W_MODE				(32'h4000_0400)
 	) dma_0 (
         .clk_i                  (clk_i),
-        .rst_ni                 (sync_rv_rst_n),
+        .rst_ni                 (rv_rst_ni),
         // CORE interface
         .dma_en_i               (dma_en),
         .funct3_i               (dma_funct3),
@@ -365,7 +322,7 @@ module core_top #(
     // SPI SLAVE
     spi_slave_wrap spi_slave_0 (
         .clk_i                  (clk_i),
-        .rst_ni                 (sync_spi_rst_n),
+        .rst_ni                 (spi_rst_ni),
         // BUS I/F
         .req_spi_o              (req_spi),
         .gnt_spi_i              (gnt_spi),
@@ -402,8 +359,8 @@ module core_top #(
         logic [31:0] imem_addr_q;
         logic [31:0] imem_rd_data_tmp;
 
-        always_ff @(posedge clk_i or negedge sync_rv_rst_n) begin
-            if (~sync_rv_rst_n) begin
+        always_ff @(posedge clk_i or negedge rv_rst_ni) begin
+            if (~rv_rst_ni) begin
                 imem_addr_q <= '0;
             end else begin
                 imem_addr_q <= imem_addr;
@@ -588,7 +545,7 @@ module core_top #(
         .UART_TRANS             (32'h8000_0008)
     ) on_chip_uart_0 (
         .clk_i                  (clk_i), 
-        .rst_ni                 (sync_rv_rst_n), 
+        .rst_ni                 (rv_rst_ni), 
         .uart_addr_i            (uart_addr),
         .uart_write_i           (uart_write),
         .uart_read_i            (uart_read),
@@ -609,7 +566,7 @@ module core_top #(
     //    .UART_SAMPLE_TIME       (32'h8000_0010)
     //) on_chip_uart_test (
     //   .clk_i                  (clk_i), 
-    //    .rst_ni                 (sync_rv_rst_n), 
+    //    .rst_ni                 (rv_rst_ni), 
     //    .uart_addr_i            (uart_addr),
     //   .uart_write_i           (uart_write),
     //    .uart_read_i            (uart_read),
@@ -636,8 +593,8 @@ module core_top #(
     assign pim_rd_data = pim_rd_i;
 
 	// UART INPUT/OUTPUT
-	always_ff @(posedge clk_i or negedge sync_rv_rst_n) begin
-		if (sync_rv_rst_n == '0) begin
+	always_ff @(posedge clk_i or negedge rv_rst_ni) begin
+		if (rv_rst_ni == '0) begin
 			serial_tx_o <= '0;
 			serial_rx_orig <= '0;
 		end else begin

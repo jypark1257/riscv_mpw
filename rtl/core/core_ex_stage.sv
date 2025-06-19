@@ -26,9 +26,7 @@ module core_ex_stage #(
     output  logic   [XLEN-1:0]  pc_branch_o,
     output  logic   [XLEN-1:0]  forward_in1_o,
     output  logic   [XLEN-1:0]  forward_in2_o,
-    output  logic   [XLEN-1:0]  mul_result_o,        // M extension output
-    output  logic               ex_valid_o,
-    output  logic               ex_valid_pc_o
+    output  logic   [XLEN-1:0]  mul_result_o
 );
 
     logic [1:0] forward_a;
@@ -38,8 +36,6 @@ module core_ex_stage #(
     logic       alu_zero;
 
     logic is_muldiv;
-    logic md_valid;
-    logic md_valid_pc;
 
     // ALU control unit
     alu_ctrl_unit alu_ctrl_u (
@@ -133,7 +129,7 @@ module core_ex_stage #(
     // Multiplier and Divider
     muldiv_unit #(
         .FPGA(FPGA),
-        .NUM_STAGE(3)
+        .XLEN(XLEN)
     ) m_u (
         .clk_i(clk_i),
         .rst_ni(rst_ni),
@@ -143,12 +139,8 @@ module core_ex_stage #(
         .funct7_i(funct7_i),
         .funct3_i(funct3_i),
         .result_o(mul_result_o),
-        .is_muldiv_o(is_muldiv),
-        .valid_o(md_valid),
-        .valid_pc_o(md_valid_pc)
+        .is_muldiv_o(is_muldiv)
     ); 
 
-    assign ex_valid_pc_o = (is_muldiv) ? md_valid_pc : 1'b1;
-    assign ex_valid_o = (is_muldiv) ? md_valid : 1'b1;       // valid signal multi-cycle functional unit
 
 endmodule

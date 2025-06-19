@@ -9,24 +9,22 @@ ENTRY(_start)
 
 SECTIONS
 {
-    /* IMEM */
-    . = 0x10000000;
-    .text.init :
+    /* ---------- Code (IMEM) ---------- */
+    .text.init : ALIGN(4)
     {
         *(.init)
     } > imem
 
-    /* DMEM */
-    . = 0x10001000;
-    .rodata :
+    /* ---------- Read-Only Data (DMEM) ---------- */
+    .rodata : ALIGN(4)
     {
         _srodata = .;
         *(.rodata)
         _erodata = .;
     } > dmem
 
-    . = ALIGN(4); /* rodata 끝난 후 4바이트 정렬 */
-    .data :
+    /* ---------- Initialized Data (DMEM) ---------- */
+    .data : ALIGN(4)
     {
         PROVIDE(_global_pointer = . + 0x800);
         _sdata = .;
@@ -34,13 +32,14 @@ SECTIONS
         _edata = .;
     } > dmem
 
-    .bss :
+    /* ---------- Uninitialized Data (BSS) ---------- */
+    .bss : ALIGN(4)
     {
         _sbss = .;
         *(.bss)
         _ebss = .;
     } > dmem
 
-    /* Stack Pointer - End of DMEM */
+    /* ---------- Stack (Top of DMEM) ---------- */
     PROVIDE(_stack_pointer = ORIGIN(dmem) + LENGTH(dmem));
 }
