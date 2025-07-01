@@ -34,7 +34,7 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_2_stage.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/muldiv_unit.sv
 
 # DMA
-VERILOG_SOURCES += $(shell pwd)/../../rtl/dma/pim_dma.sv
+VERILOG_SOURCES += $(shell pwd)/../../rtl/dma/pim_dma_v2.sv
 
 # SPI SLAVE
 VERILOG_SOURCES += $(shell pwd)/../../rtl/peripheral/spi_slave/spi_slave_wrap.sv

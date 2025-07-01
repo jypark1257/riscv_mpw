@@ -33,9 +33,9 @@ module core #(
     // DMA interface
     output  logic               dma_en_o,
     output  logic   [2:0]       dma_funct3_o,
-    output  logic   [3:0]       dma_sel_pim_o,  
-    output  logic   [12:0]      dma_size_o,
-    output  logic   [31:0]      dma_mem_addr_o
+    output  logic   [11:0]      dma_imm_o,
+    output  logic   [XLEN-1:0]  dma_rs1_o,
+    output  logic   [XLEN-1:0]  dma_rs2_o
 
 );
 
@@ -113,7 +113,7 @@ module core #(
     logic [XLEN-1:0] instr_compressed;
     logic is_compressed;
     logic is_next_instr_compressed;
-    assign pc_write = (!dma_stall) ? 1'b1 : 1'b0;
+    assign pc_write = ((!dma_stall) && (!dma_en)) ? 1'b1 : 1'b0;
 
     // instruction memory interface
     assign instr_addr_o = (branch_taken) ? pc_branch : pc_curr;
@@ -122,6 +122,7 @@ module core #(
     assign instr_size_o = 4'b1111;        // always 32-bit access
     assign instr_read_o = (!dma_stall) ? 1'b1 : 1'b0;
     assign instr_write_o = 1'b0;
+    
     // determine compressed instruction
     assign is_compressed = (instr[1:0] != 2'b11);
     always_comb begin
@@ -140,6 +141,8 @@ module core #(
         end else begin
             if (branch_taken) begin
                 valid_q <= 1'b1;
+            end else if (!pc_write) begin
+                valid_q <= valid_q; // keep the valid state
             end else begin
                 valid_q <= valid_d;
             end
@@ -150,12 +153,8 @@ module core #(
     always_comb begin
         valid_d = 1'b0;
         if (valid_q) begin  // 16b or 32l or init
-            if (is_compressed) begin    // 16b  
-                if (is_next_instr_compressed) begin // 16b, 16b
-                    valid_d = 1'b1;
-                end else begin  // 32l
-                    valid_d = 1'b1;
-                end
+            if (is_compressed) begin    // 16b
+                valid_d = 1'b1;
             end else begin  // 32l
                 if (pc_curr == RESET_PC) begin // initial instruction
                     valid_d = 1'b1;
@@ -298,10 +297,9 @@ module core #(
     // DMA interface
     assign dma_en_o = ex.dma_en;
     assign dma_funct3_o = ex.funct3;
-    assign dma_sel_pim_o = ex.imm[3:0];
-    assign dma_size_o = forward_in1[12:0];
-    assign dma_mem_addr_o = forward_in2;
-    
+    assign dma_imm_o = ex.imm[11:0];
+    assign dma_rs1_o = forward_in1;
+    assign dma_rs2_o = forward_in2;
 
     // data interface set
     // un-aligned store

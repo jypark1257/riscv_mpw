@@ -10,7 +10,7 @@ module mpw_top #(
     // CORE RESET
     input                       RVRSTN,
 	// SYNC RESET
-	output						SYNCRSTN,
+	output logic				SYNCRSTN,
 
     //UART 
 	input						SERIALRX,

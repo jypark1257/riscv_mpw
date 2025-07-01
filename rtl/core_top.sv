@@ -96,9 +96,9 @@ module core_top #(
     logic                       req_dma;
     logic                       gnt_dma;
     logic [2:0]                 dma_funct3;
-    logic [3:0]                 dma_sel_pim;
-    logic [12:0]                dma_trans_size;
-    logic [XLEN-1:0]            dma_mem_addr;
+    logic [11:0]                dma_imm;
+    logic [XLEN-1:0]            dma_rs1;
+    logic [XLEN-1:0]            dma_rs2;
     logic [XLEN-1:0]            dma_addr_0;
     logic                       dma_write_0;
     logic                       dma_read_0;
@@ -176,28 +176,23 @@ module core_top #(
         // dma interface
         .dma_en_o               (dma_en),
         .dma_funct3_o           (dma_funct3),
-        .dma_sel_pim_o          (dma_sel_pim),
-        .dma_size_o             (dma_trans_size),
-        .dma_mem_addr_o         (dma_mem_addr)
+        .dma_imm_o              (dma_imm),
+        .dma_rs1_o              (dma_rs1),
+        .dma_rs2_o              (dma_rs2)
     );
 
-	pim_dma #(
-        .PIM_CTRL               (32'h4000_0010),
-        .PIM_R                  (32'h4000_0020),
-        .PIM_W_WEIGHT           (32'h4000_0040),
-        .PIM_W_ACTIVATION       (32'h4000_0080),
-		.PIM_W_KEY				(32'h4000_0100),
-		.PIM_W_VREF				(32'h4000_0200),
-		.PIM_W_MODE				(32'h4000_0400)
+	pim_dma_v2 #(
+        .PIM_BASE_ADDR          (32'h4000_0000),
+        .PIM_STATUS             (32'h4100_0000)
 	) dma_0 (
         .clk_i                  (clk_i),
         .rst_ni                 (rv_rst_ni),
         // CORE interface
         .dma_en_i               (dma_en),
         .funct3_i               (dma_funct3),
-        .sel_pim_i              (dma_sel_pim),
-        .size_i                 (dma_trans_size),      
-        .mem_addr_i             (dma_mem_addr),
+        .imm_i                  (dma_imm),
+        .rs1_i                  (dma_rs1),
+        .rs2_i                  (dma_rs2),
         // BUS interface
         .bus_req_o              (req_dma),
         .bus_gnt_i              (gnt_dma),

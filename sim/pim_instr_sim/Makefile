@@ -6,8 +6,8 @@ TOP_MODULE = mpw_sim
 INCDIR = -I/home/jiyong/riscv_mpw/rtl/headers
 
 # BIOS hex file
-BIOS_SRC = ../../software/bios/bios.hex
-BIOS_DST = ./bios.hex
+PIM_INSTR_SRC = ../../software/pim_instr/pim_instr.hex
+PIM_INSTR_DST = ./pim_instr.hex
 
 # Source files
 SRC = ./tb_riscv.sv \
@@ -35,20 +35,20 @@ WAVE = wave.vcd
 # Default target: build and run
 all: run
 
-# Check and copy BIOS
-$(BIOS_DST):
-	@if [ ! -f $(BIOS_SRC) ]; then \
-		echo "[INFO] bios.hex not found, attempting to build it..."; \
-		make -C ../../software/bios; \
+# Check and copy pim_instr
+$(PIM_INSTR_DST):
+	@if [ ! -f $(PIM_INSTR_SRC) ]; then \
+		echo "[INFO] pim_instr.hex not found, attempting to build it..."; \
+		make -C ../../software/pim_instr; \
 	fi
-	@if [ ! -f $(BIOS_SRC) ]; then \
-		echo "[ERROR] Failed to generate bios.hex. Aborting."; \
+	@if [ ! -f $(PIM_INSTR_SRC) ]; then \
+		echo "[ERROR] Failed to generate pim_instr.hex. Aborting."; \
 		exit 1; \
 	fi
-	cp $(BIOS_SRC) $(BIOS_DST)
+	cp $(PIM_INSTR_SRC) $(PIM_INSTR_DST)
 
 # Compile
-$(OUT): $(SRC) $(BIOS_DST)
+$(OUT): $(SRC) $(PIM_INSTR_DST)
 	iverilog -g2012 $(INCDIR) -o $(OUT) -s $(TOP_MODULE) $(SRC)
 
 # Run the simulation
@@ -61,4 +61,4 @@ wave: run
 
 # Clean up generated files
 clean:
-	rm -f $(OUT) $(WAVE) $(BIOS_DST)
+	rm -f $(OUT) $(WAVE) $(PIM_INSTR_DST)
