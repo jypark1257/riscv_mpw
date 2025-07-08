@@ -93,6 +93,7 @@ module pim_dma_v2 #(
 
     // counter
     logic [13:0] trans_counter;     // maximum available transfer count: 8192 (32K * byte)
+    logic [13:0] rev_trans_counter;     // maximum available transfer count: 8192 (32K * byte)
     logic count_start;
     logic [13:0] data_count;   // GENERATE FROM FSM
     logic trans_running;
@@ -173,15 +174,15 @@ module pim_dma_v2 #(
     end
 
     // --|PIM address select|-------------------------------------------------------------
-    always_comb begin
+    always @(*) begin
 		pim_write_addr = '0;
 		pim_read_addr = '0;
         case (funct3)
             PIM_ERASE: pim_write_addr = PIM_BASE_ADDR + rc_addr;
             PIM_PROGRAM: pim_write_addr = PIM_BASE_ADDR + rc_addr;
             PIM_READ: pim_read_addr = PIM_BASE_ADDR + rc_addr;
-            PIM_PARALLEL: pim_write_addr = PIM_BASE_ADDR + rc_addr;
-            PIM_RBR: pim_write_addr = PIM_BASE_ADDR + rc_addr;
+            PIM_PARALLEL: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({16'h0, rev_trans_counter[3:0], 12'h0});
+            PIM_RBR: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({16'h0, rev_trans_counter[3:0], 12'h0});
             PIM_LOAD: pim_read_addr = PIM_BASE_ADDR + rc_addr;
 			default: begin
                 pim_write_addr = '0;
@@ -205,6 +206,15 @@ module pim_dma_v2 #(
             end
         end
     end    
+
+    always_comb begin
+        rev_trans_counter = '0;
+        case (funct3)
+            PIM_PARALLEL: rev_trans_counter = 15 - trans_counter;
+            PIM_RBR: rev_trans_counter = 1 - trans_counter;
+            default: rev_trans_counter = '0;
+        endcase
+    end
 
     // --|FSM|------------------------------------------------------------
     // state transition

@@ -164,47 +164,90 @@ module mpw_sim;
 		$readmemh("./pim_instr.hex", program_array);
 		$display("testbench> start flash program");
 		for (int i = 0; i < 2048; ++i) begin
-			if (program_array[i] !== 32'hxxxx_xxxx) begin
-				//$display("%h", program_array[i]);
+			//$display("%h", program_array[i]);
+			#2
+        	spi_start = 1;
+        	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
+        	#3
+        	spi_start = 0;
+        	spi_data_in = 0;
+        	@(posedge spi_done);
+			for (int j = 4; j > 0; --j) begin
+				//$display("%h", flash_addr[(8*j)-1 -: 8]);
 				#2
-        	    spi_start = 1;
-        	    spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
-        	    #3
-        	    spi_start = 0;
-        	    spi_data_in = 0;
-        	    @(posedge spi_done);
-				for (int j = 4; j > 0; --j) begin
-					//$display("%h", flash_addr[(8*j)-1 -: 8]);
-					#2
-        	    	spi_start = 1;
-        	    	spi_data_in = flash_addr[(8*j)-1 -: 8];	// SEND ADDRESS BYTES
-        	    	#3
-        	    	spi_start = 0;
-        	    	spi_data_in = 0;
-        	    	@(posedge spi_done);
-				end
+        		spi_start = 1;
+        		spi_data_in = flash_addr[(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+        		#3
+        		spi_start = 0;
+        		spi_data_in = 0;
+        		@(posedge spi_done);
+			end
+			#2
+        	spi_start = 1;
+        	spi_data_in = 8'h02;	// INSTRUCTION DATA
+        	#3
+        	spi_start = 0;
+        	spi_data_in = 0;
+        	@(posedge spi_done);
+			for (int j = 4; j > 0; --j) begin
+				//$display("%h", program_array[i][(8*j)-1 -: 8]);
 				#2
-        	    spi_start = 1;
-        	    spi_data_in = 8'h02;	// INSTRUCTION DATA
-        	    #3
-        	    spi_start = 0;
-        	    spi_data_in = 0;
-        	    @(posedge spi_done);
-				for (int j = 4; j > 0; --j) begin
-					//$display("%h", program_array[i][(8*j)-1 -: 8]);
-					#2
-        	    	spi_start = 1;
-        	    	spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
-        	    	#3
-        	    	spi_start = 0;
-        	    	spi_data_in = 0;
-        	    	@(posedge spi_done);
-				end
-				flash_addr = flash_addr + 4;
-			    $display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
-            end
+        		spi_start = 1;
+			    if (program_array[i] !== 32'hxxxx_xxxx) begin
+        		    spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+                end else begin
+        		    spi_data_in = '0;	// SEND ADDRESS BYTES
+                end
+        		#3
+        		spi_start = 0;
+        		spi_data_in = 0;
+        		@(posedge spi_done);
+			end
+			flash_addr = flash_addr + 4;
+			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
 		end
 		$display("testbench> Flash program done\n");
+        //----| PIM BUFFER FLASH |-------------------------------------------------------------------
+        flash_addr = 32'h2000_0000;
+        for (int i = 0; i < 4096; ++i) begin
+            #2
+                spi_start = 1;
+                spi_data_in = 8'h01;    // INSTRUCTION ADDRESS
+                #3
+                spi_start = 0;
+                spi_data_in = 0;
+                @(posedge spi_done);
+                for (int j = 4; j > 0; --j) begin
+                    //$display("%h", flash_addr[(::8*j)-1 -: 8]);
+                    #2
+                    spi_start = 1;
+                    spi_data_in = flash_addr[(8*j)-1 -: 8]; // SEND ADDRESS BYTES
+                    #3
+                    spi_start = 0;
+                    spi_data_in = 0;
+                    @(posedge spi_done);
+                end
+                #2
+                spi_start = 1;
+                spi_data_in = 8'h02;    // INSTRUCTION DATA
+                #3
+                spi_start = 0;
+                spi_data_in = 0;
+                @(posedge spi_done);
+                for (int j = 4; j > 0; --j) begin
+                    //$display("%h", program_array[i][(8*j)-1 -: 8]);
+                    #2
+                    spi_start = 1;
+                    spi_data_in = $urandom_range(255, 0);   // SEND ADDRESS BYTES
+                    #3
+                    spi_start = 0;
+                    spi_data_in = 0;
+                    @(posedge spi_done);
+                end
+                flash_addr = flash_addr + 4;
+        end
+        $display("testbench> Flash pim_buffer0 done");
+
 
         #100 i_spi_rst_n = 0; i_rv_rst_n = 1;
 

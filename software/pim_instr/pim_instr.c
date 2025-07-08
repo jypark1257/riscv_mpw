@@ -34,25 +34,28 @@ int main() {
         : [a] "r" (width_count), [b] "r" (row_col)
     );
     
-    buffer_addr = 0xFACEDEAF;
+    buffer_addr = 0x20000000;
     asm volatile (
         "pim_read %[a], 0(%[b])\n\t"
         :
         : [a] "r" (buffer_addr), [b] "r" (row_col)
     );
 
+    buffer_addr = 0x20000100;
     asm volatile (
         "pim_parallel %[a], 0(%[b])\n\t"
         :
         : [a] "r" (buffer_addr), [b] "r" (row_col)
     );
 
+    buffer_addr = 0x20000200;
     asm volatile (
         "pim_rbr %[a], 0(%[b])\n\t"
         :
         : [a] "r" (buffer_addr), [b] "r" (row_col)
     );
 
+    buffer_addr = 0x20000300;
     compute_mode = 1; // parallel mode
     asm volatile (
         "pim_load %[a], 0(%[b])\n\t"
@@ -60,6 +63,7 @@ int main() {
         : [a] "r" (buffer_addr), [b] "r" (compute_mode)
     );
 
+    buffer_addr = 0x20000400;
     compute_mode = 2; // rbr mode
     asm volatile (
         "pim_load %[a], 0(%[b])\n\t"

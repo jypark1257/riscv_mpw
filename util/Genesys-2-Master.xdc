@@ -3,7 +3,6 @@
 #### - uncomment the lines corresponding to used pins
 #### - rename the used ports (in each line, after get_ports) according to the top level signal names in the project
 
-set_property verilog_define "VIVADO" [current_fileset]
 
 ## Clock Signal
 set_property -dict { PACKAGE_PIN AD11  IOSTANDARD LVDS     } [get_ports { sysclk_n }]; #IO_L12N_T1_MRCC_33 Sch=sysclk_n

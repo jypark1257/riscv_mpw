@@ -103,31 +103,38 @@ module muldiv_unit #(
     assign divide_by_0 = (mult_in2_i == 32'b0);
     assign sign_mult_in1 = mult_in1_i[XLEN-1];
 
+    if (FPGA) begin
+        // multiplier (DW02_mult) 33-bit multiplier
+        assign mult_result = $signed(md_op1) * $signed(md_op2);
+        // Divide / Remainder (signed)
+        assign div_result = (md_op2 == 0) ? '0 : $signed(md_op1) / $signed(md_op2);
+        assign rem_result = (md_op2 == 0) ? '0 : $signed(md_op1) % $signed(md_op2);
+    end else begin
+        // multiplier (DW02_mult) 33-bit multiplier
+        DW02_mult #(
+            .A_width(XLEN + 1),
+            .B_width(XLEN + 1)
+        ) m_u (
+            .TC(1'b1),
+            .A(md_op1),
+            .B(md_op2),
+            .PRODUCT(mult_result)
+        );
 
-    // multiplier (DW02_mult) 33-bit multiplier
-    DW02_mult #(
-        .A_width(XLEN + 1),
-        .B_width(XLEN + 1)
-    ) m_u (
-        .TC(1'b1),
-        .A(md_op1),
-        .B(md_op2),
-        .PRODUCT(mult_result)
-    );
-
-    // divider (DW02_div_pipe)
-    DW_div #(
-        .a_width(XLEN + 1),
-        .b_width(XLEN + 1),
-        .tc_mode(1'b1),
-        .rem_mode(1'b1)
-    ) d_u (
-        .a(md_op1),
-        .b(md_op2),
-        .quotient(div_result),
-        .remainder(rem_result),
-        .divide_by_0()
-    );
+        // divider (DW02_div_pipe)
+        DW_div #(
+            .a_width(XLEN + 1),
+            .b_width(XLEN + 1),
+            .tc_mode(1'b1),
+            .rem_mode(1'b1)
+        ) d_u (
+            .a(md_op1),
+            .b(md_op2),
+            .quotient(div_result),
+            .remainder(rem_result),
+            .divide_by_0()
+        );
+    end
 
     assign mult_result_signed_unsigned = ~mult_result + 1'b1;
 
