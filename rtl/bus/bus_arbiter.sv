@@ -39,10 +39,10 @@ module bus_arbiter (
             IDLE: begin
                 if (req_spi_i) begin
                     next_state = GNT_SPI;
-                end else if (req_dmem_i) begin
-                    next_state = GNT_RV;
                 end else if (req_dma_i) begin
                     next_state = GNT_DMA;
+                end else if (req_dmem_i) begin
+                    next_state = GNT_RV;
                 end else begin
                     next_state = IDLE;
                 end
@@ -54,25 +54,21 @@ module bus_arbiter (
                     next_state = IDLE;
                 end
             end
-            GNT_RV: begin
-                if (req_dmem_i) begin
-                    next_state = GNT_RV;
-                end else if (req_dma_i) begin
-                    next_state = GNT_DMA;
-                end else begin
-                    next_state = IDLE;
-                end
-            end
             GNT_DMA: begin
-                if (req_dmem_i) begin
-                    next_state = GNT_RV;
-                end else if (req_dma_i) begin
+                if (req_dma_i) begin
                     next_state = GNT_DMA;
                 end else begin
                     next_state = IDLE;
                 end
             end 
-	    // DEFAULT branch of CASE statement cannot be reached
+            GNT_RV: begin
+                if (req_dmem_i) begin
+                    next_state = GNT_RV;
+                end else begin
+                    next_state = IDLE;
+                end
+            end
+	        // DEFAULT branch of CASE statement cannot be reached
             //default: begin
             //    next_state = IDLE;
             //end

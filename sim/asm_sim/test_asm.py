@@ -16,6 +16,10 @@ from cocotb.triggers import Timer
 from cocotb.types import LogicArray
 
 
+import cocotb
+from cocotb.clock import Clock
+from cocotb.triggers import RisingEdge, Timer
+
 @cocotb.test()
 async def rvtest_add(dut):
 
@@ -28,12 +32,14 @@ async def rvtest_add(dut):
 
     await RisingEdge(dut.clk_i)
     await Timer(1, units="ns")
-    for idx in range (0, 256):
+    
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -45,84 +51,94 @@ async def rvtest_add(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
     
@@ -149,13 +165,13 @@ async def rvtest_sub(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -166,88 +182,97 @@ async def rvtest_sub(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -273,13 +298,13 @@ async def rvtest_xor(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -290,88 +315,97 @@ async def rvtest_xor(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -395,13 +429,13 @@ async def rvtest_or(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -412,88 +446,97 @@ async def rvtest_or(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -517,13 +560,13 @@ async def rvtest_and(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -534,88 +577,97 @@ async def rvtest_and(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -639,13 +691,13 @@ async def rvtest_sll(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -656,88 +708,97 @@ async def rvtest_sll(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -761,13 +822,13 @@ async def rvtest_srl(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -778,88 +839,97 @@ async def rvtest_srl(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -883,13 +953,13 @@ async def rvtest_slt(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -900,88 +970,97 @@ async def rvtest_slt(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1005,13 +1084,13 @@ async def rvtest_sltu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1022,88 +1101,97 @@ async def rvtest_sltu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1127,13 +1215,13 @@ async def rvtest_addi(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1144,88 +1232,97 @@ async def rvtest_addi(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1249,13 +1346,13 @@ async def rvtest_xori(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1266,88 +1363,97 @@ async def rvtest_xori(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1371,13 +1477,13 @@ async def rvtest_ori(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1388,88 +1494,97 @@ async def rvtest_ori(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1493,13 +1608,13 @@ async def rvtest_andi(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1510,88 +1625,97 @@ async def rvtest_andi(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1615,13 +1739,13 @@ async def rvtest_slli(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1632,88 +1756,97 @@ async def rvtest_slli(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1737,13 +1870,13 @@ async def rvtest_srli(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1754,88 +1887,97 @@ async def rvtest_srli(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1859,13 +2001,13 @@ async def rvtest_srai(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1876,88 +2018,97 @@ async def rvtest_srai(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -1981,13 +2132,13 @@ async def rvtest_slti(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -1998,88 +2149,97 @@ async def rvtest_slti(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2103,13 +2263,13 @@ async def rvtest_sltiu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2120,88 +2280,97 @@ async def rvtest_sltiu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2225,13 +2394,13 @@ async def rvtest_lb(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2242,84 +2411,94 @@ async def rvtest_lb(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
 
@@ -2346,13 +2525,13 @@ async def rvtest_lh(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2363,88 +2542,97 @@ async def rvtest_lh(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2468,13 +2656,13 @@ async def rvtest_lw(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2485,88 +2673,97 @@ async def rvtest_lw(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2590,13 +2787,13 @@ async def rvtest_lbu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2607,88 +2804,97 @@ async def rvtest_lbu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2712,13 +2918,13 @@ async def rvtest_lhu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2729,88 +2935,97 @@ async def rvtest_lhu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2834,13 +3049,13 @@ async def rvtest_sb(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2851,88 +3066,97 @@ async def rvtest_sb(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -2956,13 +3180,13 @@ async def rvtest_sh(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -2973,88 +3197,97 @@ async def rvtest_sh(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3078,13 +3311,13 @@ async def rvtest_sw(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3095,88 +3328,97 @@ async def rvtest_sw(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3200,13 +3442,13 @@ async def rvtest_beq(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3217,88 +3459,97 @@ async def rvtest_beq(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3322,13 +3573,13 @@ async def rvtest_bne(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3339,88 +3590,97 @@ async def rvtest_bne(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3444,13 +3704,13 @@ async def rvtest_blt(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3461,88 +3721,97 @@ async def rvtest_blt(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3566,13 +3835,13 @@ async def rvtest_bge(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3583,88 +3852,97 @@ async def rvtest_bge(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3688,13 +3966,13 @@ async def rvtest_bltu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3705,88 +3983,97 @@ async def rvtest_bltu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3810,13 +4097,13 @@ async def rvtest_bgeu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3827,88 +4114,97 @@ async def rvtest_bgeu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -3932,13 +4228,13 @@ async def rvtest_jal(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -3949,88 +4245,97 @@ async def rvtest_jal(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4054,13 +4359,13 @@ async def rvtest_jalr(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4071,88 +4376,97 @@ async def rvtest_jalr(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4176,13 +4490,13 @@ async def rvtest_lui(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4193,88 +4507,97 @@ async def rvtest_lui(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4298,13 +4621,13 @@ async def rvtest_auipc(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4315,88 +4638,97 @@ async def rvtest_auipc(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4423,13 +4755,13 @@ async def rvtest_mul(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4440,88 +4772,97 @@ async def rvtest_mul(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4545,13 +4886,13 @@ async def rvtest_mulh(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4562,88 +4903,97 @@ async def rvtest_mulh(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4667,13 +5017,13 @@ async def rvtest_mulhsu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4684,88 +5034,97 @@ async def rvtest_mulhsu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4789,13 +5148,13 @@ async def rvtest_mulhu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4806,88 +5165,97 @@ async def rvtest_mulhu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -4911,13 +5279,13 @@ async def rvtest_div(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -4928,88 +5296,97 @@ async def rvtest_div(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -5033,13 +5410,13 @@ async def rvtest_divu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -5050,88 +5427,97 @@ async def rvtest_divu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -5155,13 +5541,13 @@ async def rvtest_rem(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -5172,88 +5558,97 @@ async def rvtest_rem(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 
@@ -5277,13 +5672,13 @@ async def rvtest_remu(dut):
     cocotb.start_soon(clock.start(start_high=False))
 
     await RisingEdge(dut.clk_i)
-    await Timer(1, units="ns")
-    for idx in range (0, 256):
+    # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
+    for idx in range (0, 512):
         dut.genblk1.M0_0.mem[idx].value = 0
         dut.genblk1.M0_1.mem[idx].value = 0
         dut.genblk1.M0_2.mem[idx].value = 0
         dut.genblk1.M0_3.mem[idx].value = 0
-    for idx in range (0, 256):
+    for idx in range (0, 512):
         dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
@@ -5294,88 +5689,97 @@ async def rvtest_remu(dut):
         for line in mem:
             inst = line.strip()  # Remove leading/trailing whitespaces and newline characters
             inst_decimal = int(inst, 16)
-            mux_addr = idx & 0x00000003     # 2-bit
-            row_addr = (idx & 0x000003fc) >> 2     # 8-bit
-            if idx < 1024:
-                
+            # sram_4096w_8b 어드레싱: MUX=8 (3-bit), 512 rows
+            mux_addr = idx & 0x00000007     # 3-bit (0-7)
+            row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
+            if idx < 4096:
+                # instruction memory (idx < 4096)
                 data0 =  dut.genblk1.M0_0.mem[row_addr].value
                 data1 =  dut.genblk1.M0_1.mem[row_addr].value
                 data2 =  dut.genblk1.M0_2.mem[row_addr].value
                 data3 =  dut.genblk1.M0_3.mem[row_addr].value
-                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << ( 0*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << ( 1*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << ( 2*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << ( 3*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << ( 4*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << ( 5*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << ( 6*4  + mux_addr))
-                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << ( 7*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << ( 0*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << ( 1*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << ( 2*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << ( 3*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << ( 4*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << ( 5*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << ( 6*4  + mux_addr))
-                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << ( 7*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << ( 0*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << ( 1*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << ( 2*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << ( 3*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << ( 4*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << ( 5*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << ( 6*4  + mux_addr))
-                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << ( 7*4  + mux_addr))
+
+                # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
+                data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                data0 = data0 | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+
+                data1 = data1 | (((inst_decimal & 0x00000100) >> 8)  << (0*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000200) >> 9)  << (1*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000400) >> 10) << (2*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00000800) >> 11) << (3*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00001000) >> 12) << (4*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00002000) >> 13) << (5*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00004000) >> 14) << (6*8 + mux_addr))
+                data1 = data1 | (((inst_decimal & 0x00008000) >> 15) << (7*8 + mux_addr))
+
+                data2 = data2 | (((inst_decimal & 0x00010000) >> 16) << (0*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00020000) >> 17) << (1*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00040000) >> 18) << (2*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00080000) >> 19) << (3*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00100000) >> 20) << (4*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00200000) >> 21) << (5*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00400000) >> 22) << (6*8 + mux_addr))
+                data2 = data2 | (((inst_decimal & 0x00800000) >> 23) << (7*8 + mux_addr))
+
+                data3 = data3 | (((inst_decimal & 0x01000000) >> 24) << (0*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x02000000) >> 25) << (1*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x04000000) >> 26) << (2*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x08000000) >> 27) << (3*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x10000000) >> 28) << (4*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x20000000) >> 29) << (5*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
+                data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
+
                 dut.genblk1.M0_0.mem[row_addr].value = data0
                 dut.genblk1.M0_1.mem[row_addr].value = data1
                 dut.genblk1.M0_2.mem[row_addr].value = data2
                 dut.genblk1.M0_3.mem[row_addr].value = data3
-            else:
-                ddata =  dut.genblk1.M1_0.mem[row_addr].value
-                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << ( 0*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << ( 1*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << ( 2*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << ( 3*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << ( 4*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << ( 5*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << ( 6*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << ( 7*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << ( 8*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << ( 9*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*4  + mux_addr))
-                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*4  + mux_addr))
+            else: 
+                # data memory 처리 (4096 이상)
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
+                ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000008) >> 3)  << (3*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000010) >> 4)  << (4*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000020) >> 5)  << (5*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000040) >> 6)  << (6*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000080) >> 7)  << (7*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000100) >> 8)  << (8*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000200) >> 9)  << (9*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000400) >> 10) << (10*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00000800) >> 11) << (11*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00001000) >> 12) << (12*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00002000) >> 13) << (13*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00004000) >> 14) << (14*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00008000) >> 15) << (15*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00010000) >> 16) << (16*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00020000) >> 17) << (17*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00040000) >> 18) << (18*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00080000) >> 19) << (19*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00100000) >> 20) << (20*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00200000) >> 21) << (21*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00400000) >> 22) << (22*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x00800000) >> 23) << (23*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x01000000) >> 24) << (24*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x02000000) >> 25) << (25*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x04000000) >> 26) << (26*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x08000000) >> 27) << (27*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x10000000) >> 28) << (28*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
+                ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
                 dut.genblk1.M1_0.mem[row_addr].value = ddata
+            
             await RisingEdge(dut.clk_i)
             idx = idx + 1
-
+    
     await Timer(1, units="ns")
     dut.rv_rst_ni.value = 1
 

@@ -1,8 +1,9 @@
 
 module pim_dma_v2 #(
-    parameter PIM_BASE_ADDR = 32'h4000_0000, // PIM base address
-    parameter PIM_STATUS    = 32'h4100_0000, // PIM status address
-    parameter PIM_MODE      = 32'h4200_0000  // PIM mode write address
+    parameter PIM_BASE_ADDR = 32'h4000_0000,    // PIM base address
+    parameter PIM_MODE      = 32'h4100_0000,    // PIM mode write address
+    parameter PIM_ZP_ADDR   = 32'h4200_0000,    // PIM zero-point address
+    parameter PIM_STATUS    = 32'h4300_0000     // PIM status read address
 ) (
     input                   clk_i,
     input                   rst_ni,
@@ -12,9 +13,10 @@ module pim_dma_v2 #(
     // 3'b001: PIM_ERASE
     // 3'b010: PIM_PROGRAM
     // 3'b011: PIM_READ
-    // 3'b100: PIM_PARALLEL
-    // 3'b101: PIM_RBR
-    // 3'b110: PIM_LOAD
+    // 3'b100: PIM_ZP
+    // 3'b101: PIM_PARALLEL
+    // 3'b110: PIM_RBR
+    // 3'b111: PIM_LOAD
     input           [2:0]   funct3_i,
     // immediate12 (sel_pim)
     input           [11:0]  imm_i,
@@ -47,18 +49,20 @@ module pim_dma_v2 #(
     localparam PIM_ERASE    = 3'b001;   // PIM_ERASE
     localparam PIM_PROGRAM  = 3'b010;   // PIM_PROGRAM
     localparam PIM_READ     = 3'b011;   // PIM_READ
-	localparam PIM_PARALLEL = 3'b100;   // PIM_PARALLEL
-	localparam PIM_RBR      = 3'b101;   // PIM_RBR
-	localparam PIM_LOAD     = 3'b110;   // PIM_LOAD
+	localparam PIM_ZP       = 3'b100;   // PIM_ZP
+	localparam PIM_PARALLEL = 3'b101;   // PIM_PARALLEL
+	localparam PIM_RBR      = 3'b110;   // PIM_RBR
+	localparam PIM_LOAD     = 3'b111;   // PIM_LOAD
 
     // PIM transfer size (W)
     localparam int SIZE_ERASE       = 1;
     localparam int SIZE_PROGRAM     = 1;
+    localparam int SIZE_ZP          = 1;
     localparam int SIZE_PARALLEL    = 16;
     localparam int SIZE_RBR         = 2;
 
     // PIM transfer size (R)
-    localparam int SIZE_READ            = 1;
+    localparam int SIZE_READ            = 1; 
     localparam int SIZE_LOAD_PARALLEL   = 64;
     localparam int SIZE_LOAD_RBR        = 32;
 
@@ -86,6 +90,7 @@ module pim_dma_v2 #(
     logic [12:0] size;
     logic [31:0] mem_addr;
     logic [31:0] timing_count;
+    logic [31:0] zero_point;
 
     // current state, next state
     e_state curr_state;
@@ -125,6 +130,7 @@ module pim_dma_v2 #(
                 case (funct3_i)
                     PIM_ERASE: size <= SIZE_ERASE;
                     PIM_PROGRAM: size <= SIZE_PROGRAM;
+                    PIM_ZP: size <= SIZE_ZP;
                     PIM_READ: size <= SIZE_READ;
                     PIM_PARALLEL: size <= SIZE_PARALLEL;
                     PIM_RBR: size <= SIZE_RBR;
@@ -151,6 +157,7 @@ module pim_dma_v2 #(
             sel_pim <= '0;
             mem_addr <= '0;
             timing_count <= '0;
+            zero_point <= '0;
         end else begin
             if (operation_start) begin
                 rc_addr <= rs1_i; // row/col address
@@ -158,6 +165,7 @@ module pim_dma_v2 #(
                 sel_pim <= imm_i;
                 mem_addr <= rs2_i;
                 timing_count <= rs2_i;
+                zero_point <= rs2_i;
             end else begin
                 rc_addr <= rc_addr;
                 funct3 <= funct3;
@@ -169,6 +177,7 @@ module pim_dma_v2 #(
                     mem_addr <= mem_addr;
                 end
                 timing_count <= timing_count;
+                zero_point <= zero_point;
             end
         end
     end
@@ -180,6 +189,7 @@ module pim_dma_v2 #(
         case (funct3)
             PIM_ERASE: pim_write_addr = PIM_BASE_ADDR + rc_addr;
             PIM_PROGRAM: pim_write_addr = PIM_BASE_ADDR + rc_addr;
+            PIM_ZP: pim_write_addr = PIM_ZP_ADDR;
             PIM_READ: pim_read_addr = PIM_BASE_ADDR + rc_addr;
             PIM_PARALLEL: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({16'h0, rev_trans_counter[3:0], 12'h0});
             PIM_RBR: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({16'h0, rev_trans_counter[3:0], 12'h0});
@@ -238,7 +248,7 @@ module pim_dma_v2 #(
             end
             RW_SETUP: begin
                 if (bus_gnt_i) begin
-                    if ((funct3 == PIM_ERASE) || (funct3 == PIM_PROGRAM) || (funct3 == PIM_PARALLEL) || (funct3 == PIM_RBR)) begin
+                    if ((funct3 == PIM_ERASE) || (funct3 == PIM_PROGRAM) || (funct3 == PIM_ZP) || (funct3 == PIM_PARALLEL) || (funct3 == PIM_RBR)) begin
                         if (pim_valid) begin
                             next_state = MODE_EXE;
                         end else begin
@@ -260,7 +270,7 @@ module pim_dma_v2 #(
             MODE_EXE: begin
                 if (!bus_gnt_i) begin
                     next_state = MODE_EXE;
-                end else if ((funct3 == PIM_ERASE) || (funct3 == PIM_PROGRAM)) begin
+                end else if ((funct3 == PIM_ERASE) || (funct3 == PIM_PROGRAM) || (funct3 == PIM_ZP)) begin
                     next_state = W_EXE;
                 end else begin      // bus_gnt && trans_running
                     next_state = R_EXE;
@@ -465,6 +475,8 @@ module pim_dma_v2 #(
                         dma_size_1_o = 4'b1111;
                         if ((funct3 == PIM_ERASE) || (funct3 == PIM_PROGRAM)) begin
                             dma_wr_data_1_o = timing_count;
+                        end else if (funct3 == PIM_ZP) begin
+                            dma_wr_data_1_o = zero_point;
                         end else begin
                             dma_wr_data_1_o = dma_rd_data_0_i;
                         end

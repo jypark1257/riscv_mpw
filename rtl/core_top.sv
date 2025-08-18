@@ -334,8 +334,6 @@ module core_top #(
         .miso_o                 (miso_o)
     );
 
-
-
     if (FPGA == 0) begin
         // IMEM
         logic [9:0] imem_addr_0;
@@ -379,7 +377,7 @@ module core_top #(
             endcase 
         end
 
-        sram_1024w_8b M0_0 (
+        sram_4096w_8b M0_0 (
 	    	.CLK 			(clk_i),
 	    	.CEN			(1'b0),
 	    	.WEN			(~({1{imem_write}} & imem_size[0])),
@@ -391,7 +389,7 @@ module core_top #(
 	    	.Q 				(dout_0)
 	    );
         // IMEM
-        sram_1024w_8b M0_1 (
+        sram_4096w_8b M0_1 (
 	    	.CLK 			(clk_i),
 	    	.CEN			(1'b0),
 	    	.WEN			(~({1{imem_write}} & imem_size[1])),
@@ -403,7 +401,7 @@ module core_top #(
 	    	.Q 				(dout_1)
 	    );
         // IMEM
-        sram_1024w_8b M0_2 (
+        sram_4096w_8b M0_2 (
 	    	.CLK 			(clk_i),
 	    	.CEN			(1'b0),
 	    	.WEN			(~({1{imem_write}} & imem_size[2])),
@@ -415,7 +413,7 @@ module core_top #(
 	    	.Q 				(dout_2)
 	    );
         // IMEM
-        sram_1024w_8b M0_3 (
+        sram_4096w_8b M0_3 (
 	    	.CLK 			(clk_i),
 	    	.CEN			(1'b0),
 	    	.WEN			(~({1{imem_write}} & imem_size[3])),
@@ -430,18 +428,19 @@ module core_top #(
         assign imem_rd_data = imem_rd_data_tmp;
     
         // DMEM
-        sram_1024w_32b M1_0 (
+        sram_4096w_32b M1_0 (
 	    	.CLK 			(clk_i),
 	    	.CEN			(1'b0),
             .GWEN           (dmem_read),
 	    	.WEN			(~({4{dmem_write}} & dmem_size)),
-	    	.A 				(dmem_addr[11:2]),
+	    	.A 				(dmem_addr[13:2]), // 12-bit address
 	    	.D 				(dmem_wr_data),
 	    	.EMA			(3'b000),
 	    	.RETN			(1'b1),
 	    	// outputs
 	    	.Q 				(dmem_rd_data)
 	    );
+        
 	    // BUF_0
 	    sram_4096w_32b M2_0 (
 	    	.CLK			(clk_i),

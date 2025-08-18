@@ -29,8 +29,6 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/core/alu.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW_div_pipe.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult.v
-VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_3_stage.v
-VERILOG_SOURCES += $(shell pwd)/../../rtl/core/DW02_mult_2_stage.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core/muldiv_unit.sv
 
 # DMA
@@ -71,6 +69,7 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_dmem.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_buf.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_1024w_8b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_1024w_32b.v
+VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_8b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_32b.v
 # VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_8192w_32b.v
 
