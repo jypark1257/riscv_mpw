@@ -2,14 +2,7 @@
 # riscv64-linux-gnu-gcc - Compiler from system packages (for local dev)
 # riscv64-unknown-elf-gcc - From SiFive (on c125m/eda machines)
 
-RISCV_CUSTOM := /opt/riscv_custom/bin/riscv64-unknown-elf
 RISCV_DEFAULT := riscv64-unknown-elf
-
-ifeq ($(GCC_CUSTOM), true)
-    RISCV := $(RISCV_DEFAULT)
-else
-    RISCV := $(RISCV_CUSTOM)
-endif
 
 LIB_PATH := ../rv_lib
 LIB_SOURCES := $(wildcard ../rv_lib/*.c)
@@ -18,15 +11,16 @@ SSRCS := $(wildcard *.s)
 
 LDSRC := ../linker_script.ld
 
-# ifeq ($(BIOS_PROG), true)
-# 	LDSRC := ../bios_linker.ld
-# else
-# 	LDSRC := ../prog_linker.ld
-# endif
-
 GCC_OPTS += -mabi=ilp32 -march=rv32imc -static -mstrict-align -mcmodel=medany -nostartfiles -T $(LDSRC)
 
-default: $(TARGET).elf
+# Set default target dependencies based on FPGA flag
+ifeq ($(FPGA), true)
+	DEFAULT_DEPS := $(TARGET).hex split-mem
+else
+	DEFAULT_DEPS := $(TARGET).hex
+endif
+
+default: $(DEFAULT_DEPS)
 
 SOURCES = $(CSRCS) $(SSRCS) ../startup.s
 ifeq ($(INCLUDE_LIB), true)
@@ -43,7 +37,19 @@ $(TARGET).elf: $(SOURCES)
 	# sed -i '1i @0' $(basename $@).hex
 # cp $(basename $@).hex ../../rtl/mem.hex
 
-clean:
-	rm -f *.elf *.dump *.hex *.bin
+$(TARGET).hex: $(TARGET).elf
 
-.PHONY: target
+# Memory splitting target
+split-mem: $(TARGET).hex
+	@echo "Generating memory files (.mem)..."
+	@if [ -f "../split_bios_fpga.py" ]; then \
+		python3 ../split_bios_fpga.py $(TARGET).hex; \
+		echo "Memory files generated successfully!"; \
+	else \
+		echo "Warning: split_bios_fpga.py not found"; \
+	fi
+
+clean:
+	rm -f *.elf *.dump *.hex *.bin *.mem
+
+.PHONY: clean default split-mem

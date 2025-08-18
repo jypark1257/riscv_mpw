@@ -1,5 +1,6 @@
 # Master Makefile dependencies
 TARGET := pim_instr
-GCC_CUSTOM := 1
+INCLUDE_LIB := false
+FPGA := false
 
 include ../Makefile.gcc.in

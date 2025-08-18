@@ -1,6 +1,6 @@
 # Master Makefile dependencies
-TARGET := bios
+TARGET := bios_fpga
 INCLUDE_LIB := true
-GCC_CUSTOM := 0
+FPGA := true
 
 include ../Makefile.gcc.in
