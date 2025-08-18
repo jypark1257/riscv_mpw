@@ -20,7 +20,7 @@ module spi_master (
     // Parameters
     localparam int CPOL = 0; // Clock polarity (0: idle low, 1: idle high)
     localparam int CPHA = 0; // Clock phase (0: sample on first edge, 1: sample on second edge)
-    localparam int CLKS_PER_HALF_BIT = 25; // 250MHz / (2 * 1MHz) = 125
+    localparam int CLKS_PER_HALF_BIT = 50; // 250MHz / (2 * 1MHz) = 125
                                             // 250MHz / (2 * 5MHz) = 25
 
     // States

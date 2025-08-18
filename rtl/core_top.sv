@@ -183,7 +183,9 @@ module core_top #(
 
 	pim_dma_v2 #(
         .PIM_BASE_ADDR          (32'h4000_0000),
-        .PIM_STATUS             (32'h4100_0000)
+        .PIM_MODE               (32'h4100_0000),
+        .PIM_ZP_ADDR            (32'h4200_0000),
+        .PIM_STATUS             (32'h4300_0000)
 	) dma_0 (
         .clk_i                  (clk_i),
         .rst_ni                 (rv_rst_ni),
@@ -336,18 +338,18 @@ module core_top #(
 
     if (FPGA == 0) begin
         // IMEM
-        logic [9:0] imem_addr_0;
-        logic [9:0] imem_addr_1;
-        logic [9:0] imem_addr_2;
-        logic [9:0] imem_addr_3;
+        logic [11:0] imem_addr_0;
+        logic [11:0] imem_addr_1;
+        logic [11:0] imem_addr_2;
+        logic [11:0] imem_addr_3;
         logic [7:0] dout_0;
         logic [7:0] dout_1;
         logic [7:0] dout_2;
         logic [7:0] dout_3;
-        assign imem_addr_0 = imem_addr[11:2] + |imem_addr[1:0];
-        assign imem_addr_1 = imem_addr[11:2] + imem_addr[1];
-        assign imem_addr_2 = imem_addr[11:2] + &imem_addr[1:0];
-        assign imem_addr_3 = imem_addr[11:2];
+        assign imem_addr_0 = imem_addr[13:2] + |imem_addr[1:0];
+        assign imem_addr_1 = imem_addr[13:2] + imem_addr[1];
+        assign imem_addr_2 = imem_addr[13:2] + &imem_addr[1:0];
+        assign imem_addr_3 = imem_addr[13:2];
 
         logic [31:0] imem_addr_q;
         logic [31:0] imem_rd_data_tmp;
@@ -380,28 +382,28 @@ module core_top #(
         // IMEM
         sram_4096w_8b_wrapper M0_0 (
             .clk_i          (clk_i),
-            .wen_i          (~({4{imem_write}} & imem_size[0])),
+            .wen_i          (~({{imem_write}} & imem_size[0])),
             .addr_i         (imem_addr_0),
             .din_i          (imem_wr_data[7:0]),
             .dout_o         (dout_0)
         );
         sram_4096w_8b_wrapper M0_1 (
             .clk_i          (clk_i),
-            .wen_i          (~({4{imem_write}} & imem_size[1])),
+            .wen_i          (~({{imem_write}} & imem_size[1])),
             .addr_i         (imem_addr_1),
             .din_i          (imem_wr_data[15:8]),
             .dout_o         (dout_1)
         );
         sram_4096w_8b_wrapper M0_2 (
             .clk_i          (clk_i),
-            .wen_i          (~({4{imem_write}} & imem_size[2])),
+            .wen_i          (~({{imem_write}} & imem_size[2])),
             .addr_i         (imem_addr_2),
             .din_i          (imem_wr_data[23:16]),
             .dout_o         (dout_2)
         );
         sram_4096w_8b_wrapper M0_3 (
             .clk_i          (clk_i),
-            .wen_i          (~({4{imem_write}} & imem_size[3])),
+            .wen_i          (~({{imem_write}} & imem_size[3])),
             .addr_i         (imem_addr_3),
             .din_i          (imem_wr_data[31:24]),
             .dout_o         (dout_3)
@@ -418,7 +420,7 @@ module core_top #(
             .din_i          (dmem_wr_data),
             .dout_o         (dmem_rd_data)
         );
-        
+
 	    // BUF_0
         sram_4096w_32b_wrapper M2_0 (
             .clk_i          (clk_i),

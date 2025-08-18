@@ -6,11 +6,14 @@ int main() {
     int width;  // 17-bit [21:5]
     int count;  // 5-bit [4:0]
     int width_count;
+    int zero_point;
     volatile int buffer_addr;
     int row;    // 7-bit [15:9]
     int col;    // 9-bit [8:0]
     int row_col;
     int compute_mode;
+
+    zero_point = 0xDEAFFACE; // Example zero point value
 
     row_col = 0x0; // Initialize row_col to zero
     row = 0x1; 
@@ -32,6 +35,12 @@ int main() {
         "pim_program %[a], 0(%[b])\n\t"
         :
         : [a] "r" (width_count), [b] "r" (row_col)
+    );
+
+    asm volatile (
+        "pim_zp %0, 0(%[a])\n\t"
+        :
+        : [a] "r" (zero_point)
     );
     
     buffer_addr = 0x20000000;

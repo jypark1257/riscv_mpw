@@ -356,8 +356,8 @@ module pim_dma_v2 #(
                 bus_req_o = 1'b1;
                 if (bus_gnt_i) begin
                     cnt_decr = 1'b1;
-                    mem_incr = 1'b1;
                     if ((funct3 == PIM_LOAD) ||(funct3 == PIM_READ)) begin
+                        mem_incr = 1'b0;
                         dma_addr_0_o = '0;
                         dma_write_0_o = 1'b0;
                         dma_read_0_o = 1'b0;
@@ -370,6 +370,7 @@ module pim_dma_v2 #(
                         dma_size_1_o = 4'b1111;
                         dma_wr_data_1_o = '0;
                     end else begin
+                        mem_incr = 1'b1;
                         dma_addr_0_o = mem_addr;
                         dma_write_0_o = 1'b0;
                         dma_read_0_o = 1'b1;

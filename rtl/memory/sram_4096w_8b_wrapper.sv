@@ -3,7 +3,7 @@
 module sram_4096w_8b_wrapper (
     input logic clk_i,
     input logic wen_i,
-    input logic [9:0] addr_i,
+    input logic [11:0] addr_i,
     input logic [7:0] din_i,
     output logic [7:0] dout_o
 );

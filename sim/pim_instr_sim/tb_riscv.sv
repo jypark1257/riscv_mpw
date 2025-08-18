@@ -3,8 +3,8 @@
 
 module mpw_sim;
 
-    parameter CLK_PERIOD = 4;
-    parameter CLK_FREQ = 250_000_000;
+    parameter CLK_PERIOD = 10;
+    parameter CLK_FREQ = 100_000_000;
     parameter BAUD_RATE = 115200;
 
     reg i_clk;
@@ -28,7 +28,7 @@ module mpw_sim;
     reg spi_start;
     wire spi_done;
     reg [7:0] spi_data_in;
-    reg [31:0] program_array [0:2047];
+    reg [31:0] program_array [0:((4096 * 2) - 1)];
     reg [31:0] flash_addr;
 
     reg [7:0] uart_buffer [0:2048];
@@ -163,42 +163,40 @@ module mpw_sim;
 		flash_addr = 32'h1000_0000;
 		$readmemh("./pim_instr.hex", program_array);
 		$display("testbench> start flash program");
-		for (int i = 0; i < 2048; ++i) begin
-			//$display("%h", program_array[i]);
-			#2
+		for (int i = 0; i < 100; ++i) begin
+			$display("%h", program_array[i]);
+            @(negedge i_clk);
         	spi_start = 1;
         	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
-        	#3
+        	@(posedge i_clk); #2;
         	spi_start = 0;
         	spi_data_in = 0;
         	@(posedge spi_done);
 			for (int j = 4; j > 0; --j) begin
-				//$display("%h", flash_addr[(8*j)-1 -: 8]);
-				#2
+                @(negedge i_clk);
         		spi_start = 1;
         		spi_data_in = flash_addr[(8*j)-1 -: 8];	// SEND ADDRESS BYTES
-        		#3
+        	    @(posedge i_clk); #2;
         		spi_start = 0;
         		spi_data_in = 0;
         		@(posedge spi_done);
 			end
-			#2
+            @(negedge i_clk);
         	spi_start = 1;
         	spi_data_in = 8'h02;	// INSTRUCTION DATA
-        	#3
+        	@(posedge i_clk); #2;
         	spi_start = 0;
         	spi_data_in = 0;
         	@(posedge spi_done);
 			for (int j = 4; j > 0; --j) begin
-				//$display("%h", program_array[i][(8*j)-1 -: 8]);
-				#2
+                @(negedge i_clk);
         		spi_start = 1;
 			    if (program_array[i] !== 32'hxxxx_xxxx) begin
         		    spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
                 end else begin
         		    spi_data_in = '0;	// SEND ADDRESS BYTES
                 end
-        		#3
+        	    @(posedge i_clk); #2;
         		spi_start = 0;
         		spi_data_in = 0;
         		@(posedge spi_done);
@@ -207,51 +205,51 @@ module mpw_sim;
 			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
 		end
 		$display("testbench> Flash program done\n");
-        //----| PIM BUFFER FLASH |-------------------------------------------------------------------
+        ////----| PIM BUFFER FLASH |-------------------------------------------------------------------
         flash_addr = 32'h2000_0000;
-        for (int i = 0; i < 4096; ++i) begin
-            #2
+        for (int i = 0; i < 250; ++i) begin
+            @(negedge i_clk);
+            spi_start = 1;
+            spi_data_in = 8'h01;    // INSTRUCTION ADDRESS
+        	@(posedge i_clk); #2;
+            spi_start = 0;
+            spi_data_in = 0;
+            @(posedge spi_done);
+            for (int j = 4; j > 0; --j) begin
+                //$display("%h", flash_addr[(::8*j)-1 -: 8]);
+                @(negedge i_clk);
                 spi_start = 1;
-                spi_data_in = 8'h01;    // INSTRUCTION ADDRESS
-                #3
+                spi_data_in = flash_addr[(8*j)-1 -: 8]; // SEND ADDRESS BYTES
+        	    @(posedge i_clk); #2;
                 spi_start = 0;
                 spi_data_in = 0;
                 @(posedge spi_done);
-                for (int j = 4; j > 0; --j) begin
-                    //$display("%h", flash_addr[(::8*j)-1 -: 8]);
-                    #2
-                    spi_start = 1;
-                    spi_data_in = flash_addr[(8*j)-1 -: 8]; // SEND ADDRESS BYTES
-                    #3
-                    spi_start = 0;
-                    spi_data_in = 0;
-                    @(posedge spi_done);
-                end
-                #2
+            end
+            @(negedge i_clk);
+            spi_start = 1;
+            spi_data_in = 8'h02;    // INSTRUCTION DATA
+        	@(posedge i_clk); #2;
+            spi_start = 0;
+            spi_data_in = 0;
+            @(posedge spi_done);
+            for (int j = 4; j > 0; --j) begin
+                //$display("%h", program_array[i][(8*j)-1 -: 8]);
+                @(negedge i_clk);
                 spi_start = 1;
-                spi_data_in = 8'h02;    // INSTRUCTION DATA
-                #3
+                spi_data_in = $urandom_range(255, 0);   // SEND ADDRESS BYTES
+        	    @(posedge i_clk); #2;
                 spi_start = 0;
                 spi_data_in = 0;
                 @(posedge spi_done);
-                for (int j = 4; j > 0; --j) begin
-                    //$display("%h", program_array[i][(8*j)-1 -: 8]);
-                    #2
-                    spi_start = 1;
-                    spi_data_in = $urandom_range(255, 0);   // SEND ADDRESS BYTES
-                    #3
-                    spi_start = 0;
-                    spi_data_in = 0;
-                    @(posedge spi_done);
-                end
-                flash_addr = flash_addr + 4;
+            end
+            flash_addr = flash_addr + 4;
         end
         $display("testbench> Flash pim_buffer0 done");
 
 
         #100 i_spi_rst_n = 0; i_rv_rst_n = 1;
 
-        repeat(3000000) @(posedge i_clk); i_rv_rst_n = 0;
+        repeat(30000) @(posedge i_clk); i_rv_rst_n = 0;
         $finish;
     end
 
