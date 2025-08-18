@@ -8,7 +8,7 @@ typedef void (*entry_t)(void);
 
 int main(void)
 {
-    //uart_init(25000000, 4800);
+    uart_init(10000000, 115200);
 
     uwrite_int8s("\n\r");
 
