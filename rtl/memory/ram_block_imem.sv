@@ -1,5 +1,5 @@
 module ram_block_imem #(
-    parameter IMEM_DEPTH = 1024,
+    parameter IMEM_DEPTH = 4096,
     parameter IMEM_ADDR_WIDTH = 12
 ) (
     input                       i_clk,

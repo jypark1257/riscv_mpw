@@ -1,6 +1,6 @@
 
 module ram_block_dmem #(	
-    parameter DMEM_DEPTH = 1024,		// dmem depth in a word (4 bytes, default: 1024 entries = 4 KB)
+    parameter DMEM_DEPTH = 4096,		// dmem depth in a word (4 bytes, default: 1024 entries = 4 KB)
 	parameter DMEM_ADDR_WIDTH = 12
 ) (
 	input			                i_clk,
