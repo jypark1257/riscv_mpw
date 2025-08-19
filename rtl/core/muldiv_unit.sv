@@ -1,5 +1,5 @@
 `ifndef COCOTB
-    `include "../headers/opcode.svh"
+    `include "opcode.svh"
 `endif 
 
 module muldiv_unit #(

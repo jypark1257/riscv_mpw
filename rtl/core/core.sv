@@ -1,6 +1,6 @@
 `ifndef COCOTB
-    `include "../headers/opcode.svh"
-    `include "../headers/pipe_reg.svh"
+    `include "opcode.svh"
+    `include "pipe_reg.svh"
 `endif 
 
 module core #(

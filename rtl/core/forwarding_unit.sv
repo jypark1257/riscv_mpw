@@ -1,5 +1,5 @@
 `ifndef COCOTB
-    `include "../headers/opcode.svh"
+    `include "opcode.svh"
 `endif 
 module forwarding_unit (
     input           [6:0]   opcode_i,
