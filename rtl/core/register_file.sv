@@ -13,6 +13,8 @@ module register_file #(
     output logic    [XLEN-1:0]  rs2_dout_o
 );
 
+    logic [XLEN-1:0] rf_data[0:31];
+    
     logic [XLEN-1:0] rf_data_debug_0;
     logic [XLEN-1:0] rf_data_debug_1;
     logic [XLEN-1:0] rf_data_debug_2;
@@ -82,7 +84,6 @@ module register_file #(
         rf_data_debug_31 = rf_data[31];
     end
 
-    logic [XLEN-1:0] rf_data[0:31];
 
     int i;
     always_ff @(posedge clk_i or negedge rst_ni) begin

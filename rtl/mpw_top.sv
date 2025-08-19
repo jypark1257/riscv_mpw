@@ -2,9 +2,8 @@
 module mpw_top #(
     parameter bit FPGA           = 0,
     parameter XLEN              = 32,
-    parameter CPU_CLOCK_FREQ    = 250_000_000,
-    parameter RESET_PC          = 32'h1000_0000,
-    parameter BAUD_RATE         = 115200
+    parameter CPU_CLOCK_FREQ    = 100_000_000,
+    parameter RESET_PC          = 32'h1000_0000
 ) (
     input                       CLK,
     // CORE RESET
@@ -74,8 +73,7 @@ module mpw_top #(
         .FPGA(FPGA),
         .XLEN(XLEN),
         .CPU_CLOCK_FREQ(CPU_CLOCK_FREQ),
-        .RESET_PC(RESET_PC),
-        .BAUD_RATE(BAUD_RATE)
+        .RESET_PC(RESET_PC)
     ) core_u (
         .clk_i(CLK),
         .rv_rst_ni(sync_rv_rst_n),

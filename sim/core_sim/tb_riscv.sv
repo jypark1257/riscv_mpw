@@ -3,8 +3,8 @@
 
 module mpw_sim;
 
-    parameter CLK_PERIOD = 4;
-    parameter CLK_FREQ = 250_000_000;
+    parameter CLK_PERIOD = 10;
+    parameter CLK_FREQ = 100_000_000;
     parameter BAUD_RATE = 115200;
 
     reg i_clk;
@@ -28,8 +28,11 @@ module mpw_sim;
     reg spi_start;
     wire spi_done;
     reg [7:0] spi_data_in;
-    reg [31:0] program_array [0:2047];
+    reg [31:0] program_array [0:(4096 *2)-1];
     reg [31:0] flash_addr;
+
+	// string to be transfer
+	string str;
 
     reg [7:0] uart_buffer [0:2048];
     integer uart_buffer_index;
@@ -101,7 +104,8 @@ module mpw_sim;
         #(CLK_PERIOD * CLK_FREQ / BAUD_RATE);
     end
 
-    task automatic uart_send;
+    // UART send task
+    task uart_send;
         input [7:0] data;
         begin
             @(posedge i_clk);
@@ -113,33 +117,22 @@ module mpw_sim;
         end
     endtask
 
-    task automatic uart_transfer;
-        input [255:0] command;
+    task uart_transfer;
+        input [255:0] command;  // packed bit vector
         input [31:0] chars;
         integer i;
         begin
             for (i = 0; i < chars; i++) begin
-                uart_send(command[(chars - 1 - i) * 8 +: 8]);
-                #(CLK_PERIOD * CLK_FREQ / BAUD_RATE * 10);
+                if (command[(chars-1-i)*8 +: 8] != 0) begin
+                    uart_send(command[(chars-1-i)*8 +: 8]);
+                    #(CLK_PERIOD * CLK_FREQ / BAUD_RATE * 10);
+                end
             end
             uart_send(8'h0D); #(CLK_PERIOD * CLK_FREQ / BAUD_RATE * 10);
             uart_send(8'h0A); #(CLK_PERIOD * CLK_FREQ / BAUD_RATE * 10);
         end
     endtask
 
-    task automatic send_str;
-        input string s;
-        bit [255:0] command_buf;
-        int len;
-        begin
-            len = s.len();
-            command_buf = 0;
-            for (int i = 0; i < len; i++) begin
-                command_buf |= bit'(s[i]) << (8 * (len - 1 - i));
-            end
-            uart_transfer(command_buf, len);
-        end
-    endtask
 
     initial begin
         // Initialize signals
@@ -160,46 +153,46 @@ module mpw_sim;
 		flash_addr = 32'h1000_0000;
 		$readmemh("./bios.hex", program_array);
 		$display("testbench> start flash program");
-		for (int i = 0; i < 2048; ++i) begin
-			if (program_array[i] !== 32'hxxxx_xxxx) begin
-				//$display("%h", program_array[i]);
-				#2
-        	    spi_start = 1;
-        	    spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
-        	    #3
-        	    spi_start = 0;
-        	    spi_data_in = 0;
-        	    @(posedge spi_done);
-				for (int j = 4; j > 0; --j) begin
-					//$display("%h", flash_addr[(8*j)-1 -: 8]);
-					#2
-        	    	spi_start = 1;
-        	    	spi_data_in = flash_addr[(8*j)-1 -: 8];	// SEND ADDRESS BYTES
-        	    	#3
-        	    	spi_start = 0;
-        	    	spi_data_in = 0;
-        	    	@(posedge spi_done);
-				end
-				#2
-        	    spi_start = 1;
-        	    spi_data_in = 8'h02;	// INSTRUCTION DATA
-        	    #3
-        	    spi_start = 0;
-        	    spi_data_in = 0;
-        	    @(posedge spi_done);
-				for (int j = 4; j > 0; --j) begin
-					//$display("%h", program_array[i][(8*j)-1 -: 8]);
-					#2
-        	    	spi_start = 1;
-        	    	spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
-        	    	#3
-        	    	spi_start = 0;
-        	    	spi_data_in = 0;
-        	    	@(posedge spi_done);
-				end
-				flash_addr = flash_addr + 4;
-			    $display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
-            end
+		for (int i = 0; i < 4200; ++i) begin
+			$display("%h", program_array[i]);
+            @(negedge i_clk);
+        	spi_start = 1;
+        	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
+        	@(posedge i_clk); #2;
+        	spi_start = 0;
+        	spi_data_in = 0;
+        	@(posedge spi_done);
+			for (int j = 4; j > 0; --j) begin
+                @(negedge i_clk);
+        		spi_start = 1;
+        		spi_data_in = flash_addr[(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+        	    @(posedge i_clk); #2;
+        		spi_start = 0;
+        		spi_data_in = 0;
+        		@(posedge spi_done);
+			end
+            @(negedge i_clk);
+        	spi_start = 1;
+        	spi_data_in = 8'h02;	// INSTRUCTION DATA
+        	@(posedge i_clk); #2;
+        	spi_start = 0;
+        	spi_data_in = 0;
+        	@(posedge spi_done);
+			for (int j = 4; j > 0; --j) begin
+                @(negedge i_clk);
+        		spi_start = 1;
+			    if (program_array[i] !== 32'hxxxx_xxxx) begin
+        		    spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+                end else begin
+        		    spi_data_in = '0;	// SEND ADDRESS BYTES
+                end
+        	    @(posedge i_clk); #2;
+        		spi_start = 0;
+        		spi_data_in = 0;
+        		@(posedge spi_done);
+			end
+			flash_addr = flash_addr + 4;
+			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
 		end
 		$display("testbench> Flash program done\n");
 
@@ -207,30 +200,9 @@ module mpw_sim;
 
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        send_str("help");
+		uart_transfer("help", 4);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        send_str("dump 20000000 64");
-        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
-        //send_str("pim_write 20000000 1 4608");
-        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
-        //send_str("pim_key 20000000 1 120");
-        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
-        //send_str("pim_vref 20000000 1 72");
-        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
-        //send_str("pim_mode 20000000 1 1");
-        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
-        //send_str("pim_compute 20001000 1 72");
-        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
-        //send_str("pim_load 20000000 1 128");
-        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-//
         #1000000;
         $finish;
     end

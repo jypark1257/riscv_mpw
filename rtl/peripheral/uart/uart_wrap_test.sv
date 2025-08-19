@@ -1,7 +1,5 @@
 
 module uart_wrap_test #(
-    parameter CLOCK_FREQ            = 125_000_000,
-    parameter BAUD_RATE             = 115_200,
     parameter UART_CTRL             = 32'h8000_0000,
     parameter UART_RECV             = 32'h8000_0004,
     parameter UART_TRANS            = 32'h8000_0008,
@@ -92,15 +90,12 @@ module uart_wrap_test #(
     end
 
     //UART
-    uart #(
-        .CLOCK_FREQ(CLOCK_FREQ),
-        .BAUD_RATE(BAUD_RATE)
-    ) on_chip_uart (
+    uart_test on_chip_uart (
         .clk            (clk_i),
         .reset          (!rst_ni),
 
-        //.symbol_edge_time(symbol_edge_time),
-        //.sample_time(sample_time),
+        .symbol_edge_time(symbol_edge_time),
+        .sample_time(sample_time),
 
         .data_in        (data_in),
         .data_in_valid  (data_in_valid),
@@ -116,10 +111,7 @@ module uart_wrap_test #(
 endmodule
 
 
-module uart_test #(
-    parameter CLOCK_FREQ = 125_000_000,
-    parameter BAUD_RATE = 115_200)
-(
+module uart_test (
     input clk,
     input reset,
 
@@ -145,10 +137,7 @@ module uart_test #(
         serial_in_reg <= reset ? 1'b1 : serial_in;
     end
 
-    uart_transmitter_test #(
-        .CLOCK_FREQ(CLOCK_FREQ),
-        .BAUD_RATE(BAUD_RATE)
-    ) uatransmit (
+    uart_transmitter_test uatransmit (
         .clk(clk),
         .reset(reset),
         .symbol_edge_time(symbol_edge_time),
@@ -158,10 +147,7 @@ module uart_test #(
         .serial_out(serial_out_tx)
     );
 
-    uart_receiver_test #(
-        .CLOCK_FREQ(CLOCK_FREQ),
-        .BAUD_RATE(BAUD_RATE)
-    ) uareceive (
+    uart_receiver_test uareceive (
         .clk(clk),
         .reset(reset),
         .symbol_edge_time(symbol_edge_time),
@@ -174,10 +160,7 @@ module uart_test #(
 endmodule
 
 
-module uart_receiver_test #(
-    parameter CLOCK_FREQ = 125_000_000,
-    parameter BAUD_RATE = 115_200)
-(
+module uart_receiver_test (
     input clk,
     input reset,
 
@@ -255,10 +238,7 @@ module uart_receiver_test #(
     end
 endmodule
 
-module uart_transmitter_test #(
-    parameter CLOCK_FREQ = 125_000_000,
-    parameter BAUD_RATE = 115_200)
-(
+module uart_transmitter_test (
     input clk,
     input reset,
 

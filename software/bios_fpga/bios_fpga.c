@@ -8,7 +8,9 @@ typedef void (*entry_t)(void);
 
 int main(void)
 {
-    uart_init(50000000, 115200);
+    // clock frequency: 25Mhz
+    // baud rate: 115200
+    uart_init(25000000, 57600);
 
     uwrite_int8s("\n\r");
 
@@ -34,5 +36,3 @@ int main(void)
 
     return 0;
 }
-
-

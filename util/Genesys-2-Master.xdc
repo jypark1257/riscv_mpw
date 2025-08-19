@@ -41,8 +41,8 @@ set_property -dict { PACKAGE_PIN G25   IOSTANDARD LVCMOS12 } [get_ports { spi_rs
 #set_property -dict { PACKAGE_PIN AE20  IOSTANDARD LVCMOS33  PULLUP true } [get_ports { ps2_data_0 }]; #IO_25_12 Sch=ps2_data[0]
 
 ## UART
-set_property -dict { PACKAGE_PIN Y23   IOSTANDARD LVCMOS33 } [get_ports { o_serial_tx }]; #IO_L1P_T0_12 Sch=uart_rx_out
-set_property -dict { PACKAGE_PIN Y20   IOSTANDARD LVCMOS33 } [get_ports { i_serial_rx }]; #IO_0_12 Sch=uart_tx_in
+#set_property -dict { PACKAGE_PIN Y23   IOSTANDARD LVCMOS33 } [get_ports { o_serial_tx }]; #IO_L1P_T0_12 Sch=uart_rx_out
+#set_property -dict { PACKAGE_PIN Y20   IOSTANDARD LVCMOS33 } [get_ports { i_serial_rx }]; #IO_0_12 Sch=uart_tx_in
 
 ## SD Card
 #set_property -dict { PACKAGE_PIN P28   IOSTANDARD LVCMOS33 } [get_ports { sd_cd }]; #IO_L8N_T1_D12_14 Sch=sd_cd
@@ -164,8 +164,8 @@ set_property -dict { PACKAGE_PIN Y20   IOSTANDARD LVCMOS33 } [get_ports { i_seri
 #set_property -dict { PACKAGE_PIN U23   IOSTANDARD LVCMOS33 } [get_ports { jb[7] }]; #IO_L21N_T3_DQS_A06_D22_14 Sch=jb_n[4]
 
 ## PMOD Header JC
-#set_property -dict { PACKAGE_PIN AC26  IOSTANDARD LVCMOS33 } [get_ports { i_serial_rx }]; #IO_L19P_T3_13 Sch=jc[1]
-#set_property -dict { PACKAGE_PIN AJ27  IOSTANDARD LVCMOS33 } [get_ports { o_serial_tx }]; #IO_L20P_T3_13 Sch=jc[2]
+set_property -dict { PACKAGE_PIN AC26  IOSTANDARD LVCMOS33 } [get_ports { i_serial_rx }]; #IO_L19P_T3_13 Sch=jc[1]
+set_property -dict { PACKAGE_PIN AJ27  IOSTANDARD LVCMOS33 } [get_ports { o_serial_tx }]; #IO_L20P_T3_13 Sch=jc[2]
 #set_property -dict { PACKAGE_PIN AH30  IOSTANDARD LVCMOS33 } [get_ports { jc[2] }]; #IO_L18N_T2_13 Sch=jc[3]
 #set_property -dict { PACKAGE_PIN AK29  IOSTANDARD LVCMOS33 } [get_ports { jc[3] }]; #IO_L15P_T2_DQS_13 Sch=jc[4]
 #set_property -dict { PACKAGE_PIN AD26  IOSTANDARD LVCMOS33 } [get_ports { jc[4] }]; #IO_L19N_T3_VREF_13 Sch=jc[7]

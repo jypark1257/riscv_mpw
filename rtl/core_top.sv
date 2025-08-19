@@ -2,9 +2,8 @@
 module core_top #(
     parameter bit FPGA          = 0,
     parameter XLEN              = 32,
-    parameter CPU_CLOCK_FREQ    = 250_000_000,
-    parameter RESET_PC          = 32'h1000_0000,
-    parameter BAUD_RATE         = 115200
+    parameter CPU_CLOCK_FREQ    = 100_000_000,
+    parameter RESET_PC          = 32'h1000_0000
 ) (
     input                       clk_i,
     // CORE RESET (SYNC)
@@ -26,6 +25,7 @@ module core_top #(
     output logic    [XLEN-1:0]  pim_wr_o,
     input           [XLEN-1:0]	pim_rd_i
 );
+
 	
 	logic						cs_reg;
     logic                       sync_bus_rst_n;
@@ -504,9 +504,7 @@ module core_top #(
     end
 
     // on-chip uart
-    uart_wrap #(
-        .CLOCK_FREQ             (CPU_CLOCK_FREQ),
-        .BAUD_RATE              (BAUD_RATE),
+    uart_wrap_test #(
         .UART_CTRL              (32'h8000_0000),
         .UART_RECV              (32'h8000_0004),
         .UART_TRANS             (32'h8000_0008)
@@ -523,29 +521,6 @@ module core_top #(
         .serial_tx_o            (serial_tx_orig)
     );
 
-    //uart_wrap_test #( 
-    //    .CLOCK_FREQ             (CPU_CLOCK_FREQ),
-    //    .BAUD_RATE              (BAUD_RATE),
-    //    .UART_CTRL              (32'h8000_0000),
-    //    .UART_RECV              (32'h8000_0004),
-    //    .UART_TRANS             (32'h8000_0008),
-    //    .UART_SYMBOL_EDGE_TIME  (32'h8000_000C),
-    //    .UART_SAMPLE_TIME       (32'h8000_0010)
-    //) on_chip_uart_test (
-    //   .clk_i                  (clk_i), 
-    //    .rst_ni                 (rv_rst_ni), 
-    //    .uart_addr_i            (uart_addr),
-    //   .uart_write_i           (uart_write),
-    //    .uart_read_i            (uart_read),
-    //    .uart_size_i            (uart_size),
-    //    .uart_din_i             (uart_wr_data),
-    //    .uart_dout_o            (uart_rd_data),
-    //   .serial_rx_i            (serial_rx_orig),
-    //    .serial_tx_o            (serial_tx_orig)
-    //);
-
-    //assign uart_rd_data = (orig_test_switch) ? uart_rd_data_orig : uart_rd_data_test;
-
 	// PIM controller INPUT/OUTPUT
 	always_ff @(posedge clk_i or negedge sync_bus_rst_n) begin
 		if (sync_bus_rst_n == '0) begin
@@ -558,6 +533,7 @@ module core_top #(
 	end
 
     assign pim_rd_data = pim_rd_i;
+    
 
 	// UART INPUT/OUTPUT
 	always_ff @(posedge clk_i or negedge rv_rst_ni) begin
