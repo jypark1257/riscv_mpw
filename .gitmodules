@@ -1,3 +1,4 @@
 [submodule "rtl/peripheral/peri_module"]
 	path = rtl/peripheral/peri_module
 	url = https://github.com/hyn0711/riscv_mpw_peri.git
+	branch = main
