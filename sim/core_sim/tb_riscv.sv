@@ -286,7 +286,7 @@ module mpw_sim;
                 @(negedge i_clk);
         		spi_start = 1;
 			    if (program_array[i] !== 32'hxxxx_xxxx) begin
-        		    spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+        		    spi_data_in = $urandom;
                 end else begin
         		    spi_data_in = '0;	// SEND ADDRESS BYTES
                 end
