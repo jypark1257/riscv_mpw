@@ -101,7 +101,7 @@ module mpw_sim;
     //
     //
     //
-    
+
     always begin
         #(CLK_PERIOD / 2) i_clk = ~i_clk;
     end
@@ -253,6 +253,52 @@ module mpw_sim;
 			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
 		end
 		$display("testbench> Flash program done\n");
+
+		// ----| SRAM FLASH |-------------------------------------------------------------------
+		flash_addr = 32'h2000_0000;
+		$readmemh("./bios.hex", program_array);
+		$display("testbench> start flash program (imem)");
+		for (int i = 0; i < 128; ++i) begin
+            @(negedge i_clk);
+        	spi_start = 1;
+        	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
+        	@(posedge i_clk); #2;
+        	spi_start = 0;
+        	spi_data_in = 0;
+        	@(posedge spi_done);
+			for (int j = 4; j > 0; --j) begin
+                @(negedge i_clk);
+        		spi_start = 1;
+        		spi_data_in = flash_addr[(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+        	    @(posedge i_clk); #2;
+        		spi_start = 0;
+        		spi_data_in = 0;
+        		@(posedge spi_done);
+			end
+            @(negedge i_clk);
+        	spi_start = 1;
+        	spi_data_in = 8'h02;	// INSTRUCTION DATA
+        	@(posedge i_clk); #2;
+        	spi_start = 0;
+        	spi_data_in = 0;
+        	@(posedge spi_done);
+			for (int j = 4; j > 0; --j) begin
+                @(negedge i_clk);
+        		spi_start = 1;
+			    if (program_array[i] !== 32'hxxxx_xxxx) begin
+        		    spi_data_in = program_array[i][(8*j)-1 -: 8];	// SEND ADDRESS BYTES
+                end else begin
+        		    spi_data_in = '0;	// SEND ADDRESS BYTES
+                end
+        	    @(posedge i_clk); #2;
+        		spi_start = 0;
+        		spi_data_in = 0;
+        		@(posedge spi_done);
+			end
+			flash_addr = flash_addr + 4;
+			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
+		end
+
 
         #100 i_spi_rst_n = 0; i_rv_rst_n = 1;
 
