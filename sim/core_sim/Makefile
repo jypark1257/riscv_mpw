@@ -3,7 +3,7 @@
 # Top-level testbench module
 TOP_MODULE = mpw_sim
 
-INCDIR = -I/home/jiyong/riscv_mpw/rtl/headers
+INCDIR = -I../../rtl/headers
 
 # BIOS hex file
 BIOS_SRC = ../../software/bios/bios.hex
@@ -12,22 +12,22 @@ BIOS_DST = ./bios.hex
 # Source files
 SRC = ./tb_riscv.sv \
 	  ./spi_master.sv \
-      /home/jiyong/riscv_mpw/rtl/mpw_top.sv \
-      /home/jiyong/riscv_mpw/rtl/core_top.sv \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/bus/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/bus/*.v) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/core/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/core/*.v) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/memory/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/memory/*.v) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/spi_slave/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/spi_slave/*.v) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/peri_module/peri_module/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/peri_module/peri_module/output_buffer/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/spi_slave/*.v) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/uart/*.sv) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/uart/*.v) \
-      $(wildcard /home/jiyong/riscv_mpw/rtl/dma/pim_dma_v2.sv) 
+      ../../rtl/mpw_top.sv \
+      ../../rtl/core_top.sv \
+      $(wildcard ../../rtl/bus/*.sv) \
+      $(wildcard ../../rtl/bus/*.v) \
+      $(wildcard ../../rtl/core/*.sv) \
+      $(wildcard ../../rtl/core/*.v) \
+      $(wildcard ../../rtl/memory/*.sv) \
+      $(wildcard ../../rtl/memory/*.v) \
+      $(wildcard ../../rtl/peripheral/spi_slave/*.sv) \
+      $(wildcard ../../rtl/peripheral/spi_slave/*.v) \
+      $(wildcard ../../rtl/peripheral/peri_module/peri_module/*.sv) \
+      $(wildcard ../../rtl/peripheral/peri_module/peri_module/output_buffer/*.sv) \
+      $(wildcard ../../rtl/peripheral/spi_slave/*.v) \
+      $(wildcard ../../rtl/peripheral/uart/*.sv) \
+      $(wildcard ../../rtl/peripheral/uart/*.v) \
+      $(wildcard ../../rtl/dma/pim_dma_v2.sv) 
 
 # Output binary
 OUT = sim.out
