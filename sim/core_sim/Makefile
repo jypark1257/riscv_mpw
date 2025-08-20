@@ -22,6 +22,9 @@ SRC = ./tb_riscv.sv \
       $(wildcard /home/jiyong/riscv_mpw/rtl/memory/*.v) \
       $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/spi_slave/*.sv) \
       $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/spi_slave/*.v) \
+      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/peri_module/peri_module/*.sv) \
+      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/peri_module/peri_module/output_buffer/*.sv) \
+      $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/spi_slave/*.v) \
       $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/uart/*.sv) \
       $(wildcard /home/jiyong/riscv_mpw/rtl/peripheral/uart/*.v) \
       $(wildcard /home/jiyong/riscv_mpw/rtl/dma/pim_dma_v2.sv) 

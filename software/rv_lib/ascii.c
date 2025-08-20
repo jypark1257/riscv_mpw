@@ -13,7 +13,7 @@ type##_t ascii_dec_to_##type(const char* s) \
 }
 
 DEFINE_FROM_ASCII_DEC(uint8)
-//DEFINE_FROM_ASCII_DEC(uint16)
+DEFINE_FROM_ASCII_DEC(uint16)
 DEFINE_FROM_ASCII_DEC(uint32)
 
 #define DEFINE_FROM_ASCII_HEX(type) \
@@ -34,8 +34,8 @@ type##_t ascii_hex_to_##type(const char* s) \
     return t; \
 }
 
-//DEFINE_FROM_ASCII_HEX(uint8)
-//DEFINE_FROM_ASCII_HEX(uint16)
+DEFINE_FROM_ASCII_HEX(uint8)
+DEFINE_FROM_ASCII_HEX(uint16)
 DEFINE_FROM_ASCII_HEX(uint32)
 
 #define DEFINE_TO_ASCII_HEX(type) \
@@ -57,5 +57,5 @@ int8_t* type##_to_ascii_hex(type##_t x, int8_t* buffer, uint32_t n) \
 }
 
 DEFINE_TO_ASCII_HEX(uint8)
-//DEFINE_TO_ASCII_HEX(uint16)
+DEFINE_TO_ASCII_HEX(uint16)
 DEFINE_TO_ASCII_HEX(uint32)

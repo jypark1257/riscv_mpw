@@ -63,7 +63,7 @@ module pim_dma_v2 #(
 
     // PIM transfer size (R)
     localparam int SIZE_READ            = 1; 
-    localparam int SIZE_LOAD_PARALLEL   = 64;
+    localparam int SIZE_LOAD_PARALLEL   = 32;
     localparam int SIZE_LOAD_RBR        = 32;
 
     // FSM states

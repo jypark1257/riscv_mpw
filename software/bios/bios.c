@@ -1,13 +1,13 @@
 #include "ascii.h"
 #include "uart.h"
 #include "string.h"
+#include "pim.h"
 
 #define BUFFER_LEN 128
 
 typedef void (*entry_t)(void);
 
-int main(void)
-{
+int main(void) {
     // clock frequency: 100MHz
     // baud rate: 115200
     uart_init(100000000, 115200);
@@ -15,20 +15,133 @@ int main(void)
     uwrite_int8s("\n\r");
 
     for ( ; ; ) {
+
         uwrite_int8s("RV_MPW> ");
 
-        int8_t buffer[BUFFER_LEN];
-        int8_t sel_pim[BUFFER_LEN];
-        int8_t size[BUFFER_LEN];
-        int8_t *input = read_token(buffer, BUFFER_LEN, " \x0d");
+        int8_t buf_command[BUFFER_LEN];
+        int8_t buf_pulse_width[BUFFER_LEN];
+        int8_t buf_pulse_count[BUFFER_LEN];
+        int8_t buf_row[BUFFER_LEN];
+        int8_t buf_col[BUFFER_LEN];
+        int8_t buf_zero_point[BUFFER_LEN];
+        int8_t buf_buffer_addr[BUFFER_LEN];
+        int8_t buf_size[BUFFER_LEN];
 
-        if (strcmp(input, "help") == 0) {
+        int8_t *input = read_token(buf_command, BUFFER_LEN, " \x0d");
+
+        if (strcmp(input, "pim_erase") == 0) {
+            /* Instruction parsing */
+            int8_t *str_pulse_width = read_token(buf_pulse_width, BUFFER_LEN, " \x0d");
+            int8_t *str_pulse_count = read_token(buf_pulse_count, BUFFER_LEN, " \x0d");
+            int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
+            uint32_t pulse_width = ascii_hex_to_uint32(str_pulse_width);
+            uint8_t pulse_count = (uint8_t)ascii_hex_to_uint32(str_pulse_count);
+            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
+            pim_erase(pulse_width, pulse_count, row);
+
+        } else if (strcmp(input, "pim_program") == 0) {
+            /* Instruction parsing */
+            int8_t *str_pulse_width = read_token(buf_pulse_width, BUFFER_LEN, " \x0d");
+            int8_t *str_pulse_count = read_token(buf_pulse_count, BUFFER_LEN, " \x0d");
+            int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
+            int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
+            uint32_t pulse_width = ascii_hex_to_uint32(str_pulse_width);
+            uint8_t pulse_count = (uint8_t)ascii_hex_to_uint32(str_pulse_count);
+            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            pim_program(pulse_width, pulse_count, row, col);
+
+            /* print parameter */
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
+            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("\n\r");
+        } else if (strcmp(input, "pim_zp") == 0) {
+            /* Instruction parsing */
+            int8_t *str_zero_point = read_token(buf_zero_point, BUFFER_LEN, " \x0d");
+            uint32_t zero_point = ascii_hex_to_uint32(str_zero_point);
+            pim_zp(zero_point);
+
+            /* print parameter */
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
+            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("\n\r");
+        } else if (strcmp(input, "pim_read") == 0) {
+            /* Instruction parsing */
+            int8_t *str_buffer_addr = read_token(buf_buffer_addr, BUFFER_LEN, " \x0d");
+            int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
+            int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
+            uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
+            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            pim_read(buffer_addr, row, col);    
+
+            /* print parameter */
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
+            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("\n\r");
+        } else if (strcmp(input, "pim_parallel") == 0) {
+            /* Instruction parsing */
+            int8_t *str_buffer_addr = read_token(buf_buffer_addr, BUFFER_LEN, " \x0d");
+            int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
+            int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
+            uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
+            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            pim_parallel(buffer_addr, row, col);    
+
+            /* print parameter */
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
+            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("\n\r");
+        } else if (strcmp(input, "pim_rbr") == 0) {
+            /* Instruction parsing */
+            int8_t *str_buffer_addr = read_token(buf_buffer_addr, BUFFER_LEN, " \x0d");
+            int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
+            int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
+            uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
+            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            pim_rbr(buffer_addr, row, col);
+
+            /* print parameter */
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
+            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("\n\r");
+        } else if (strcmp(input, "pim_load") == 0) {
+            /* Instruction parsing */
+            int8_t *str_buffer_addr = read_token(buf_buffer_addr, BUFFER_LEN, " \x0d");
+            int8_t *str_compute_mode = read_token(buf_row, BUFFER_LEN, " \x0d");
+            uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
+            uint8_t compute_mode = (uint8_t)ascii_hex_to_uint32(str_compute_mode);
+            pim_load(buffer_addr, compute_mode);
+
+            /* print parameter */
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
+            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("\n\r");
+        } else if (strcmp(input, "dump") == 0) {
+            /* Instruction parsing */
+            int8_t *str_buffer_addr = read_token(buf_buffer_addr, BUFFER_LEN, " \x0d");
+            int8_t *str_size = read_token(buf_size, BUFFER_LEN, " \x0d");
+            uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
+            uint32_t size = ascii_dec_to_uint32(str_size);
+            dump_buffer(buffer_addr, size);
+
+        } else if (strcmp(input, "help") == 0) {
             uwrite_int8s("Please ask jiyong, jiyong is the best!!");
             uwrite_int8s("\n\r");
-        }  else {
+
+        } else {
             uwrite_int8s("Unrecognized token: ");
             uwrite_int8s(input);
             uwrite_int8s("\n\r");
+
         }
     }
 
@@ -36,5 +149,3 @@ int main(void)
 
     return 0;
 }
-
-

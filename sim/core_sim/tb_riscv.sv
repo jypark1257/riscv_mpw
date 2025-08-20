@@ -83,9 +83,25 @@ module mpw_sim;
         .MISO(miso),
         .SERIALRX(serial_in),
         .SERIALTX(serial_out),
-        .SYNCRSTN(o_sync_rst_n)
+        .SYNCRSTN(o_sync_rst_n),
+        .PIMADDR(),
+        .PIMRD({32{1'b1}}),  // Not used in this simulation
+        .PIMWD()
     );
 
+    // instance here: PIM peripheral
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    
     always begin
         #(CLK_PERIOD / 2) i_clk = ~i_clk;
     end
@@ -153,8 +169,7 @@ module mpw_sim;
 		flash_addr = 32'h1000_0000;
 		$readmemh("./bios.hex", program_array);
 		$display("testbench> start flash program (imem)");
-		for (int i = 0; i < 560; ++i) begin
-			$display("%h", program_array[i]);
+		for (int i = 0; i < 1180; ++i) begin
             @(negedge i_clk);
         	spi_start = 1;
         	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
@@ -197,8 +212,7 @@ module mpw_sim;
 
 		flash_addr = 32'h1000_4000;
 		$display("testbench> start flash program (dmem)");
-		for (int i = 4096; i < 4130; ++i) begin
-			$display("%h", program_array[i]);
+		for (int i = 4096; i < 4150; ++i) begin
             @(negedge i_clk);
         	spi_start = 1;
         	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
@@ -245,6 +259,33 @@ module mpw_sim;
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
 		uart_transfer("help", 4);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+		uart_transfer("pim_erase 4 7 10", 16);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_program 3 11 10 12", 22);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_zp 7897", 11);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_read 0x20000000 12 9", 24);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_parallel 0x20000000 10 12", 29);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_rbr 0x20000000 10 12", 24);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_load 0x20000000 0", 21);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_load 0x20000000 1", 21);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("dump 0x20000000 128", 19);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
         #1000000;
