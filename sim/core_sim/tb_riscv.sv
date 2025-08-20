@@ -322,13 +322,13 @@ module mpw_sim;
         uart_transfer("pim_parallel 0x20000000 10 12", 29);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
+        uart_transfer("pim_load 0x20000000 1", 21);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
         uart_transfer("pim_rbr 0x20000000 10 12", 24);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_load 0x20000000 0", 21);
-        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
-
-        uart_transfer("pim_load 0x20000000 1", 21);
+        uart_transfer("pim_load 0x20000000 2", 21);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
         uart_transfer("dump 0x20000000 128", 19);
