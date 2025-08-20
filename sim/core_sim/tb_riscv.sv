@@ -1,4 +1,3 @@
-
 `timescale 1ns/10ps
 
 module mpw_sim;
@@ -30,6 +29,33 @@ module mpw_sim;
     reg [7:0] spi_data_in;
     reg [31:0] program_array [0:(4096 *2)-1];
     reg [31:0] flash_addr;
+
+
+    // RISC-V <-> PERI
+    wire [31:0] pim_addr;
+    wire [31:0] pimwd;
+    wire [31:0] pimrd;
+
+    // PERI <-> PIM
+    // Row wise signal
+    wire [1:0] MODE_o;
+    wire [127:0] WL_SEL_o;
+    wire [127:0] VPASS_EN_o;
+
+    wire [7:0] DUML_o;
+    wire [7:0] CSL_o;
+    wire [31:0] BSEL_o;
+    wire [7:0] CSEL_o;
+    wire ADC_EN1_o;
+    wire ADC_EN2_o;
+    wire QDAC_o;
+    wire [1:0] RSEL_o;
+
+    // Col wise signal
+    wire [255:0] DUMH_o;
+    wire [127:0] PRECB_o;
+    wire [127:0] DISC_o;
+
 
 	// string to be transfer
 	string str;
@@ -84,23 +110,44 @@ module mpw_sim;
         .SERIALRX(serial_in),
         .SERIALTX(serial_out),
         .SYNCRSTN(o_sync_rst_n),
-        .PIMADDR(),
-        .PIMRD({32{1'b1}}),  // Not used in this simulation
-        .PIMWD()
+        .PIMADDR(pim_addr),
+        .PIMRD(pimrd),  // Not used in this simulation
+        .PIMWD(pimwd)
     );
 
     // instance here: PIM peripheral
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
+    peri_top peri (
+        .clk_i(i_clk),
+        .rst_ni(i_rv_rst_n),
+
+        // RISC-V
+        .address_i(pim_addr),
+        .data_i(pimwd),
+
+        .data_o(pimrd),
+
+        // PIM
+        .eFlash_output_i({128{8'b11110000}}),
+
+        // Row wise signal
+        .MODE_o(MODE_o),
+        .WL_SEL_o(WL_SEL_o),
+        .VPASS_EN_o(VPASS_EN_o),
+
+        .DUML_o(DUML_o),
+        .CSL_o(CSL_o),
+        .BSEL_o(BSEL_o),
+        .CSEL_o(CSEL_o),
+        .ADC_EN1_o(ADC_EN1_o),
+        .ADC_EN2_o(ADC_EN2_o),
+        .QDAC_o(QDAC_o),
+        .RSEL_o(RSEL_o),
+
+        // Col wise signal
+        .DUMH_o(DUMH_o),
+        .PRECB_o(PRECB_o),
+        .DISC_o(DISC_o)
+    );
 
     always begin
         #(CLK_PERIOD / 2) i_clk = ~i_clk;
@@ -256,8 +303,6 @@ module mpw_sim;
 
 		// ----| SRAM FLASH |-------------------------------------------------------------------
 		flash_addr = 32'h2000_0000;
-		$readmemh("./bios.hex", program_array);
-		$display("testbench> start flash program (imem)");
 		for (int i = 0; i < 128; ++i) begin
             @(negedge i_clk);
         	spi_start = 1;
@@ -296,7 +341,7 @@ module mpw_sim;
         		@(posedge spi_done);
 			end
 			flash_addr = flash_addr + 4;
-			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, program_array[i]);
+			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, spi_data_in);
 		end
 
 
