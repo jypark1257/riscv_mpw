@@ -1,7 +1,6 @@
-`ifndef COCOTB
-    `include "opcode.svh"
-    `include "pipe_reg.svh"
-`endif 
+
+`include "opcode.svh"
+`include "pipe_reg.svh"
 
 module core #(
     parameter bit FPGA = 0,

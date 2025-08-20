@@ -1,6 +1,4 @@
-`ifndef COCOTB
-    `include "opcode.svh"
-`endif 
+`include "opcode.svh"
 
 module compressed_decoder (
     input  logic        clk_i,

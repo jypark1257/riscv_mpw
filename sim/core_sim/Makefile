@@ -9,6 +9,8 @@ INCDIR = -I../../rtl/headers
 BIOS_SRC = ../../software/bios/bios.hex
 BIOS_DST = ./bios.hex
 
+DEFINES = -DDW_SUPPRESS_WARN -DMY_PARAM=16
+
 # Source files
 SRC = ./tb_riscv.sv \
 	  ./spi_master.sv \
@@ -52,7 +54,7 @@ $(BIOS_DST):
 
 # Compile
 $(OUT): $(SRC) $(BIOS_DST)
-	iverilog -g2012 $(INCDIR) -o $(OUT) -s $(TOP_MODULE) $(SRC)
+	iverilog -g2012 $(INCDIR) $(DEFINES) -o $(OUT) -s $(TOP_MODULE) $(SRC)
 
 # Run the simulation
 run: $(OUT)

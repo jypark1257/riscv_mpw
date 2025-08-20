@@ -1,6 +1,4 @@
-`ifndef COCOTB
-    `include "opcode.svh"
-`endif 
+`include "opcode.svh"
 
 module alu_ctrl_unit (
     input           [6:0]   opcode_i,

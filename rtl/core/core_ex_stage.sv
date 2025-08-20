@@ -1,6 +1,4 @@
-`ifndef COCOTB
-    `include "opcode.svh"
-`endif 
+`include "opcode.svh"
 
 module core_ex_stage #(
     parameter bit FPGA = 0,

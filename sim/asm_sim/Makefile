@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: CC0-1.0
 
 TOPLEVEL_LANG ?= verilog
+
+COMPILE_ARGS += -DDW_SUPPRESS_WARN
+
 # CORE HEADERS
-VERILOG_SOURCES += $(shell pwd)/../../rtl/headers/pipe_reg.svh
-VERILOG_SOURCES += $(shell pwd)/../../rtl/headers/opcode.svh
+COMPILE_ARGS += -I$(shell pwd)/../../rtl/headers
 
 # CORE TOP
 VERILOG_SOURCES += $(shell pwd)/../../rtl/core_top.sv
@@ -66,13 +68,10 @@ VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/pim_buffer.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_imem.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_dmem.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/ram_block_buf.sv
-VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_1024w_8b.v
-VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_1024w_32b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_8b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_32b.v
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_8b_wrapper.sv
 VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_4096w_32b_wrapper.sv
-# VERILOG_SOURCES += $(shell pwd)/../../rtl/memory/sram_8192w_32b.v
 
 
 COMPILE_ARGS += -DCOCOTB

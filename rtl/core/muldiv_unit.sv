@@ -1,7 +1,4 @@
-`ifndef COCOTB
-    `include "opcode.svh"
-`endif 
-`define DW_SUPPRESS_WARN
+`include "opcode.svh"
 
 module muldiv_unit #(
     parameter bit FPGA = 0,

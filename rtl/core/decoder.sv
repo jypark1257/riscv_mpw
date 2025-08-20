@@ -1,6 +1,4 @@
-`ifndef COCOTB
-    `include "opcode.svh"
-`endif 
+`include "opcode.svh"
 
 module decoder (
     input           [6:0]   opcode_i,
