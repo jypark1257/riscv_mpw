@@ -45,6 +45,7 @@ void dump_buffer(uint32_t source_addr, uint32_t size) {
 
 void pim_erase(uint32_t pulse_width, uint8_t pulse_count, uint8_t row) {
     uint32_t width_count = (pulse_width << 5) | pulse_count;
+    uint32_t row_col = (row << 9) | 0x0; // Column is not used in erase operation, set to 0
     asm volatile ( 
         "pim_erase %[a], 0(%[b])\n\t"
         :

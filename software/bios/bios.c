@@ -34,9 +34,9 @@ int main(void) {
             int8_t *str_pulse_width = read_token(buf_pulse_width, BUFFER_LEN, " \x0d");
             int8_t *str_pulse_count = read_token(buf_pulse_count, BUFFER_LEN, " \x0d");
             int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
-            uint32_t pulse_width = ascii_hex_to_uint32(str_pulse_width);
-            uint8_t pulse_count = (uint8_t)ascii_hex_to_uint32(str_pulse_count);
-            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
+            uint32_t pulse_width = ascii_dec_to_uint32(str_pulse_width);
+            uint8_t pulse_count = (uint8_t)ascii_dec_to_uint32(str_pulse_count);
+            uint8_t row = (uint8_t)ascii_dec_to_uint32(str_row);
             pim_erase(pulse_width, pulse_count, row);
 
         } else if (strcmp(input, "pim_program") == 0) {
@@ -45,10 +45,10 @@ int main(void) {
             int8_t *str_pulse_count = read_token(buf_pulse_count, BUFFER_LEN, " \x0d");
             int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
             int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
-            uint32_t pulse_width = ascii_hex_to_uint32(str_pulse_width);
-            uint8_t pulse_count = (uint8_t)ascii_hex_to_uint32(str_pulse_count);
-            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
-            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            uint32_t pulse_width = ascii_dec_to_uint32(str_pulse_width);
+            uint8_t pulse_count = (uint8_t)ascii_dec_to_uint32(str_pulse_count);
+            uint8_t row = (uint8_t)ascii_dec_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_dec_to_uint32(str_col);
             pim_program(pulse_width, pulse_count, row, col);
 
             /* print parameter */
@@ -59,7 +59,7 @@ int main(void) {
         } else if (strcmp(input, "pim_zp") == 0) {
             /* Instruction parsing */
             int8_t *str_zero_point = read_token(buf_zero_point, BUFFER_LEN, " \x0d");
-            uint32_t zero_point = ascii_hex_to_uint32(str_zero_point);
+            uint32_t zero_point = ascii_dec_to_uint32(str_zero_point);
             pim_zp(zero_point);
 
             /* print parameter */
@@ -73,8 +73,8 @@ int main(void) {
             int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
             int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
             uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
-            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
-            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            uint8_t row = (uint8_t)ascii_dec_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_dec_to_uint32(str_col);
             pim_read(buffer_addr, row, col);    
 
             /* print parameter */
@@ -88,8 +88,8 @@ int main(void) {
             int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
             int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
             uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
-            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
-            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            uint8_t row = (uint8_t)ascii_dec_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_dec_to_uint32(str_col);
             pim_parallel(buffer_addr, row, col);    
 
             /* print parameter */
@@ -103,8 +103,8 @@ int main(void) {
             int8_t *str_row = read_token(buf_row, BUFFER_LEN, " \x0d");
             int8_t *str_col = read_token(buf_col, BUFFER_LEN, " \x0d");
             uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
-            uint8_t row = (uint8_t)ascii_hex_to_uint32(str_row);
-            uint16_t col = (uint16_t)ascii_hex_to_uint32(str_col);
+            uint8_t row = (uint8_t)ascii_dec_to_uint32(str_row);
+            uint16_t col = (uint16_t)ascii_dec_to_uint32(str_col);
             pim_rbr(buffer_addr, row, col);
 
             /* print parameter */
@@ -117,7 +117,7 @@ int main(void) {
             int8_t *str_buffer_addr = read_token(buf_buffer_addr, BUFFER_LEN, " \x0d");
             int8_t *str_compute_mode = read_token(buf_row, BUFFER_LEN, " \x0d");
             uint32_t buffer_addr = ascii_hex_to_uint32(str_buffer_addr);
-            uint8_t compute_mode = (uint8_t)ascii_hex_to_uint32(str_compute_mode);
+            uint8_t compute_mode = (uint8_t)ascii_dec_to_uint32(str_compute_mode);
             pim_load(buffer_addr, compute_mode);
 
             /* print parameter */

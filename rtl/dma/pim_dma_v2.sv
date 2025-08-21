@@ -9,14 +9,6 @@ module pim_dma_v2 #(
     input                   rst_ni,
     // DMA enable
     input                   dma_en_i,
-    // funct3
-    // 3'b001: PIM_ERASE
-    // 3'b010: PIM_PROGRAM
-    // 3'b011: PIM_READ
-    // 3'b100: PIM_ZP
-    // 3'b101: PIM_PARALLEL
-    // 3'b110: PIM_RBR
-    // 3'b111: PIM_LOAD
     input           [2:0]   funct3_i,
     // immediate12 (sel_pim)
     input           [11:0]  imm_i,
@@ -45,15 +37,6 @@ module pim_dma_v2 #(
     output  logic           dma_busy_o
 );
 
-    // PIM operation codes
-    localparam PIM_ERASE    = 3'b001;   // PIM_ERASE
-    localparam PIM_PROGRAM  = 3'b010;   // PIM_PROGRAM
-    localparam PIM_READ     = 3'b011;   // PIM_READ
-	localparam PIM_ZP       = 3'b100;   // PIM_ZP
-	localparam PIM_PARALLEL = 3'b101;   // PIM_PARALLEL
-	localparam PIM_RBR      = 3'b110;   // PIM_RBR
-	localparam PIM_LOAD     = 3'b111;   // PIM_LOAD
-
     // PIM transfer size (W)
     localparam int SIZE_ERASE       = 1;
     localparam int SIZE_PROGRAM     = 1;
@@ -74,6 +57,7 @@ module pim_dma_v2 #(
     // 3'b100: RW_EXE
     // 3'b101: W_EXE
     typedef enum logic [2:0] { IDLE, RW_SETUP, MODE_EXE, R_EXE, RW_EXE, W_EXE } e_state;
+    typedef enum logic [2:0] { NO_OP, PIM_ERASE, PIM_PROGRAM, PIM_READ, PIM_ZP, PIM_PARALLEL, PIM_RBR, PIM_LOAD } e_funct3;
 
     // PIM status
     // logic pim_busy;
@@ -85,7 +69,15 @@ module pim_dma_v2 #(
 
     // operand fetch
     logic [31:0] rc_addr; // row/col address
-    logic [2:0] funct3;
+    // funct3
+    // 3'b001: PIM_ERASE
+    // 3'b010: PIM_PROGRAM
+    // 3'b011: PIM_READ
+    // 3'b100: PIM_ZP
+    // 3'b101: PIM_PARALLEL
+    // 3'b110: PIM_RBR
+    // 3'b111: PIM_LOAD
+    e_funct3 funct3;
     logic [11:0] sel_pim;
     logic [12:0] size;
     logic [31:0] mem_addr;
@@ -191,8 +183,8 @@ module pim_dma_v2 #(
             PIM_PROGRAM: pim_write_addr = PIM_BASE_ADDR + rc_addr;
             PIM_ZP: pim_write_addr = PIM_ZP_ADDR;
             PIM_READ: pim_read_addr = PIM_BASE_ADDR + rc_addr;
-            PIM_PARALLEL: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({16'h0, rev_trans_counter[3:0], 12'h0});
-            PIM_RBR: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({16'h0, rev_trans_counter[3:0], 12'h0});
+            PIM_PARALLEL: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({12'h0, rev_trans_counter[3:0], 16'h0});
+            PIM_RBR: pim_write_addr = (PIM_BASE_ADDR + rc_addr) | ({12'h0, rev_trans_counter[3:0], 16'h0});
             PIM_LOAD: pim_read_addr = PIM_BASE_ADDR + rc_addr;
 			default: begin
                 pim_write_addr = '0;
@@ -203,7 +195,7 @@ module pim_dma_v2 #(
 
     // --|counter|-----------------------------------------------------------
     assign trans_running = trans_counter != '0;
-    assign data_count = size;
+    assign data_count = size - 1;
     
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (rst_ni == '0) begin
@@ -355,7 +347,7 @@ module pim_dma_v2 #(
                 dma_busy_o = 1'b1;
                 bus_req_o = 1'b1;
                 if (bus_gnt_i) begin
-                    cnt_decr = 1'b1;
+                    cnt_decr = 1'b0;
                     if ((funct3 == PIM_LOAD) ||(funct3 == PIM_READ)) begin
                         mem_incr = 1'b0;
                         dma_addr_0_o = '0;
@@ -402,7 +394,7 @@ module pim_dma_v2 #(
             RW_EXE: begin
                 dma_busy_o = 1'b1;
                 bus_req_o = 1'b1;
-                if (bus_gnt_i) begin   
+                if (bus_gnt_i) begin  
                     cnt_decr = 1'b1;    
                     mem_incr = 1'b1;
                     if (funct3 == PIM_LOAD) begin
