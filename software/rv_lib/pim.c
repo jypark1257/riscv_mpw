@@ -49,7 +49,7 @@ void pim_erase(uint32_t pulse_width, uint8_t pulse_count, uint8_t row) {
     asm volatile ( 
         "pim_erase %[a], 0(%[b])\n\t"
         :
-        : [a] "r" (width_count), [b] "r" (row)
+        : [a] "r" (width_count), [b] "r" (row_col)
     );
     return;
 }
