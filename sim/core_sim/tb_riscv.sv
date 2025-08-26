@@ -364,6 +364,9 @@ module mpw_sim;
         uart_transfer("pim_read 0x20000000 12 9", 24);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
+        uart_transfer("pim_load 0x20000000 3", 21);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
         uart_transfer("pim_parallel 0x20000000 10 12", 29);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
