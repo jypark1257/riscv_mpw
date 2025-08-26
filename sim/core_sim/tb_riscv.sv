@@ -37,6 +37,7 @@ module mpw_sim;
     wire [31:0] pimrd;
 
     // PERI <-> PIM
+    reg [1023:0] eFlash_output_i;
     // Row wise signal
     wire [1:0] MODE_o;
     wire [127:0] WL_SEL_o;
@@ -127,7 +128,7 @@ module mpw_sim;
         .data_o(pimrd),
 
         // PIM
-        .eFlash_output_i({128{8'b11110000}}),
+        .eFlash_output_i(eFlash_output_i),
 
         // Row wise signal
         .MODE_o(MODE_o),
@@ -148,6 +149,26 @@ module mpw_sim;
         .PRECB_o(PRECB_o),
         .DISC_o(DISC_o)
     );
+
+    // Make random data from eFlash PIM
+    task automatic random_eFlash_output();
+        // 8 bit * 128
+        logic [7:0] choices8b[] = '{
+            8'b00000000, 8'b10000000, 8'b11000000, 8'b11100000, 8'b11110000, 8'b11111000, 8'b11111100, 8'b11111110, 8'b11111111
+            };
+        for (int i = 0; i < 128; i++) begin
+            eFlash_output_i[1023 - 8*i -: 8] = choices8b[$urandom_range(0, choices8b.size()-1)];
+        end
+        for (int w = 0; w < 32; w++) begin
+            logic [31:0] word;
+            word = eFlash_output_i[1023 - 32 * w -: 32];
+            $write("%0t  [%02d] 0x%08h  ", $time, w, word);
+            if ((w % 4) == 3) $write("\n");
+        end
+        $write("\n");
+    endtask
+
+
 
     always begin
         #(CLK_PERIOD / 2) i_clk = ~i_clk;
@@ -216,7 +237,7 @@ module mpw_sim;
 		flash_addr = 32'h1000_0000;
 		$readmemh("./bios.hex", program_array);
 		$display("testbench> start flash program (imem)");
-		for (int i = 0; i < 1180; ++i) begin
+		for (int i = 0; i < 1345; ++i) begin
             @(negedge i_clk);
         	spi_start = 1;
         	spi_data_in = 8'h01;	// INSTRUCTION ADDRESS
@@ -344,13 +365,14 @@ module mpw_sim;
 			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, spi_data_in);
 		end
 
+        random_eFlash_output();
 
         #100 i_spi_rst_n = 0; i_rv_rst_n = 1;
 
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-		uart_transfer("help", 4);
-        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+        //uart_transfer("dump 20000000 10", 17);
+        //wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
 		uart_transfer("pim_erase 4 7 10", 16);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
@@ -361,26 +383,33 @@ module mpw_sim;
         uart_transfer("pim_zp 7897", 11);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_read 0x20000000 12 9", 24);
+        uart_transfer("pim_read 20000000 12 9", 24);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_load 0x20000000 3", 21);
+        uart_transfer("pim_load 20000000 3", 21);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_parallel 0x20000000 10 12", 29);
+        uart_transfer("dump 20000000 1", 17);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_load 0x20000000 1", 21);
+        uart_transfer("pim_parallel 20000030 10 12", 29);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_rbr 0x20000000 10 12", 24);
+        uart_transfer("pim_load 20000100 1", 21);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("pim_load 0x20000000 2", 21);
+        uart_transfer("dump 20000100 32", 18);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
 
-        uart_transfer("dump 0x20000000 128", 19);
+        uart_transfer("pim_rbr 20000088 10 12", 24);
         wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("pim_load 200000ac 2", 21);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
+        uart_transfer("dump 200000ac 32", 18);
+        wait(response_ready); response_ready = 0; uart_buffer_index = 0;
+
 
         #1000000;
         $finish;

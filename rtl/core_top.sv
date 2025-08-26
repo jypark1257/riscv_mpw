@@ -431,15 +431,15 @@ module core_top #(
             .dout_o         (buf_rd_data_0)
         );
     
-	    // BUF_1
-        sram_4096w_32b_wrapper M2_1 (
-            .clk_i          (clk_i),
-            .gwen_i         (buf_read_1),
-            .wen_i          (~({4{buf_write_1}} & buf_size_1)),
-            .addr_i         (buf_addr_1[13:2]),
-            .din_i          (buf_wr_data_1),
-            .dout_o         (buf_rd_data_1)
-        );
+	    //// BUF_1
+        //sram_4096w_32b_wrapper M2_1 (
+        //    .clk_i          (clk_i),
+        //    .gwen_i         (buf_read_1),
+        //    .wen_i          (~({4{buf_write_1}} & buf_size_1)),
+        //    .addr_i         (buf_addr_1[13:2]),
+        //    .din_i          (buf_wr_data_1),
+        //    .dout_o         (buf_rd_data_1)
+        //);
 
     end else begin
         // IMEM

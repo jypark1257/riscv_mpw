@@ -12,6 +12,55 @@ int main(void) {
     // baud rate: 115200
     uart_init(100000000, 115200);
 
+    // initialize buffer first (for debugging)
+    (*((volatile uint32_t*)0x20000000)) = 0x12345678;
+    (*((volatile uint32_t*)0x20000004)) = 0x9abcdef0;
+    (*((volatile uint32_t*)0x20000008)) = 0xdeadbeef;
+    (*((volatile uint32_t*)0x2000000c)) = 0xfacefeed;
+    (*((volatile uint32_t*)0x20000010)) = 0x0badc0de;
+    (*((volatile uint32_t*)0x20000014)) = 0x8badf00d;
+    (*((volatile uint32_t*)0x20000018)) = 0xcafebabe;
+    (*((volatile uint32_t*)0x2000001c)) = 0xfeedface;
+    (*((volatile uint32_t*)0x20000020)) = 0xabad1dea;
+    (*((volatile uint32_t*)0x20000024)) = 0xdeadbabe;
+    (*((volatile uint32_t*)0x20000028)) = 0xfaceb00c;
+    (*((volatile uint32_t*)0x2000002c)) = 0xdefec8ed;
+    (*((volatile uint32_t*)0x20000030)) = 0xfee1dead;
+    (*((volatile uint32_t*)0x20000034)) = 0xbaadf00d;
+    (*((volatile uint32_t*)0x20000038)) = 0xdecafbad;
+    (*((volatile uint32_t*)0x2000003c)) = 0xc001d00d;
+    (*((volatile uint32_t*)0x20000040)) = 0x0defaced;
+    (*((volatile uint32_t*)0x20000044)) = 0xdead10cc;
+    (*((volatile uint32_t*)0x20000048)) = 0xfeedbabe;
+    (*((volatile uint32_t*)0x2000004c)) = 0x8badf00d;
+    (*((volatile uint32_t*)0x20000050)) = 0xcafed00d;
+    (*((volatile uint32_t*)0x20000054)) = 0xdeadbeef;
+    (*((volatile uint32_t*)0x20000058)) = 0xfacefeed;
+    (*((volatile uint32_t*)0x2000005c)) = 0x0badc0de;
+    (*((volatile uint32_t*)0x20000060)) = 0x8badf00d;
+    (*((volatile uint32_t*)0x20000064)) = 0xcafebabe;
+    (*((volatile uint32_t*)0x20000068)) = 0xfeedface;
+    (*((volatile uint32_t*)0x2000006c)) = 0xabad1dea;
+    (*((volatile uint32_t*)0x20000070)) = 0xdeadbabe;
+    (*((volatile uint32_t*)0x20000074)) = 0xfaceb00c;
+    (*((volatile uint32_t*)0x20000078)) = 0xdefec8ed;
+    (*((volatile uint32_t*)0x2000007c)) = 0xfee1dead;
+    (*((volatile uint32_t*)0x20000080)) = 0xbaadf00d;
+    (*((volatile uint32_t*)0x20000084)) = 0xdecafbad;
+    (*((volatile uint32_t*)0x20000088)) = 0xc001d00d;
+    (*((volatile uint32_t*)0x2000008c)) = 0x0defaced;
+    (*((volatile uint32_t*)0x20000090)) = 0xdead10cc;
+    (*((volatile uint32_t*)0x20000094)) = 0xfeedbabe;
+    (*((volatile uint32_t*)0x20000098)) = 0x8badf00d;
+    (*((volatile uint32_t*)0x2000009c)) = 0xcafed00d;
+    (*((volatile uint32_t*)0x200000a0)) = 0xdeadbeef;
+    (*((volatile uint32_t*)0x200000a4)) = 0xfacefeed;
+    (*((volatile uint32_t*)0x200000a8)) = 0x0badc0de;
+    (*((volatile uint32_t*)0x200000ac)) = 0x8badf00d;   
+
+    //(*((volatile uint32_t*)0x20000100))
+
+
     uwrite_int8s("\n\r");
 
     for ( ; ; ) {
@@ -121,9 +170,8 @@ int main(void) {
             pim_load(buffer_addr, compute_mode);
 
             /* print parameter */
-            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(source_addr, str_source_addr, BUFFER_LEN)); 
-            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(sel_pim, str_sel_pim, BUFFER_LEN)); 
-            //uwrite_int8s("("); uwrite_int8s(uint32_to_ascii_hex(size, str_size, BUFFER_LEN)); uwrite_int8s(")");
+            //uwrite_int8s("pim_write "); uwrite_int8s(uint32_to_ascii_hex(buffer_addr, str_buffer_addr, BUFFER_LEN)); 
+            //uwrite_int8s(", "); uwrite_int8s(uint8_to_ascii_hex(compute_mode, str_compute_mode, BUFFER_LEN)); uwrite_int8s(")");
             //uwrite_int8s("\n\r");
         } else if (strcmp(input, "dump") == 0) {
             /* Instruction parsing */
