@@ -35,12 +35,12 @@ async def rvtest_add(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # program initialization for 4x sram_4096w_8b
@@ -56,10 +56,10 @@ async def rvtest_add(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -98,13 +98,13 @@ async def rvtest_add(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -137,7 +137,7 @@ async def rvtest_add(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -170,12 +170,12 @@ async def rvtest_sub(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -190,10 +190,10 @@ async def rvtest_sub(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -232,13 +232,13 @@ async def rvtest_sub(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -271,7 +271,7 @@ async def rvtest_sub(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -306,12 +306,12 @@ async def rvtest_xor(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -326,10 +326,10 @@ async def rvtest_xor(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -368,13 +368,13 @@ async def rvtest_xor(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -407,7 +407,7 @@ async def rvtest_xor(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -440,12 +440,12 @@ async def rvtest_or(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -460,10 +460,10 @@ async def rvtest_or(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -502,13 +502,13 @@ async def rvtest_or(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -541,7 +541,7 @@ async def rvtest_or(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -574,12 +574,12 @@ async def rvtest_and(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -594,10 +594,10 @@ async def rvtest_and(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -636,13 +636,13 @@ async def rvtest_and(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -675,7 +675,7 @@ async def rvtest_and(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -708,12 +708,12 @@ async def rvtest_sll(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -728,10 +728,10 @@ async def rvtest_sll(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -770,13 +770,13 @@ async def rvtest_sll(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -809,7 +809,7 @@ async def rvtest_sll(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -842,12 +842,12 @@ async def rvtest_srl(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -862,10 +862,10 @@ async def rvtest_srl(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -904,13 +904,13 @@ async def rvtest_srl(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -943,7 +943,7 @@ async def rvtest_srl(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -976,12 +976,12 @@ async def rvtest_slt(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -996,10 +996,10 @@ async def rvtest_slt(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1038,13 +1038,13 @@ async def rvtest_slt(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1077,7 +1077,7 @@ async def rvtest_slt(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1110,12 +1110,12 @@ async def rvtest_sltu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1130,10 +1130,10 @@ async def rvtest_sltu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1172,13 +1172,13 @@ async def rvtest_sltu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1211,7 +1211,7 @@ async def rvtest_sltu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1244,12 +1244,12 @@ async def rvtest_addi(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1264,10 +1264,10 @@ async def rvtest_addi(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1306,13 +1306,13 @@ async def rvtest_addi(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1345,7 +1345,7 @@ async def rvtest_addi(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1378,12 +1378,12 @@ async def rvtest_xori(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1398,10 +1398,10 @@ async def rvtest_xori(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1440,13 +1440,13 @@ async def rvtest_xori(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1479,7 +1479,7 @@ async def rvtest_xori(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1512,12 +1512,12 @@ async def rvtest_ori(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1532,10 +1532,10 @@ async def rvtest_ori(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1574,13 +1574,13 @@ async def rvtest_ori(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1613,7 +1613,7 @@ async def rvtest_ori(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1646,12 +1646,12 @@ async def rvtest_andi(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1666,10 +1666,10 @@ async def rvtest_andi(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1708,13 +1708,13 @@ async def rvtest_andi(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1747,7 +1747,7 @@ async def rvtest_andi(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1780,12 +1780,12 @@ async def rvtest_slli(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1800,10 +1800,10 @@ async def rvtest_slli(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1842,13 +1842,13 @@ async def rvtest_slli(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -1881,7 +1881,7 @@ async def rvtest_slli(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -1914,12 +1914,12 @@ async def rvtest_srli(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -1934,10 +1934,10 @@ async def rvtest_srli(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -1976,13 +1976,13 @@ async def rvtest_srli(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2015,7 +2015,7 @@ async def rvtest_srli(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2048,12 +2048,12 @@ async def rvtest_srai(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2068,10 +2068,10 @@ async def rvtest_srai(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2110,13 +2110,13 @@ async def rvtest_srai(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2149,7 +2149,7 @@ async def rvtest_srai(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2182,12 +2182,12 @@ async def rvtest_slti(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2202,10 +2202,10 @@ async def rvtest_slti(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2244,13 +2244,13 @@ async def rvtest_slti(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2283,7 +2283,7 @@ async def rvtest_slti(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2316,12 +2316,12 @@ async def rvtest_sltiu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2336,10 +2336,10 @@ async def rvtest_sltiu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2378,13 +2378,13 @@ async def rvtest_sltiu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2417,7 +2417,7 @@ async def rvtest_sltiu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2450,12 +2450,12 @@ async def rvtest_lb(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2470,10 +2470,10 @@ async def rvtest_lb(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2512,13 +2512,13 @@ async def rvtest_lb(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2551,7 +2551,7 @@ async def rvtest_lb(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2584,12 +2584,12 @@ async def rvtest_lh(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2604,10 +2604,10 @@ async def rvtest_lh(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2646,13 +2646,13 @@ async def rvtest_lh(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2685,7 +2685,7 @@ async def rvtest_lh(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2718,12 +2718,12 @@ async def rvtest_lw(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2738,10 +2738,10 @@ async def rvtest_lw(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2780,13 +2780,13 @@ async def rvtest_lw(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2819,7 +2819,7 @@ async def rvtest_lw(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2852,12 +2852,12 @@ async def rvtest_lbu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -2872,10 +2872,10 @@ async def rvtest_lbu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -2914,13 +2914,13 @@ async def rvtest_lbu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -2953,7 +2953,7 @@ async def rvtest_lbu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -2986,12 +2986,12 @@ async def rvtest_lhu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3006,10 +3006,10 @@ async def rvtest_lhu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3048,13 +3048,13 @@ async def rvtest_lhu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3087,7 +3087,7 @@ async def rvtest_lhu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3120,12 +3120,12 @@ async def rvtest_sb(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3140,10 +3140,10 @@ async def rvtest_sb(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3182,13 +3182,13 @@ async def rvtest_sb(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3221,7 +3221,7 @@ async def rvtest_sb(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3254,12 +3254,12 @@ async def rvtest_sh(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3274,10 +3274,10 @@ async def rvtest_sh(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3316,13 +3316,13 @@ async def rvtest_sh(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3355,7 +3355,7 @@ async def rvtest_sh(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3388,12 +3388,12 @@ async def rvtest_sw(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3408,10 +3408,10 @@ async def rvtest_sw(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3450,13 +3450,13 @@ async def rvtest_sw(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3489,7 +3489,7 @@ async def rvtest_sw(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3522,12 +3522,12 @@ async def rvtest_beq(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3542,10 +3542,10 @@ async def rvtest_beq(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3584,13 +3584,13 @@ async def rvtest_beq(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3623,7 +3623,7 @@ async def rvtest_beq(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3656,12 +3656,12 @@ async def rvtest_bne(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3676,10 +3676,10 @@ async def rvtest_bne(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3718,13 +3718,13 @@ async def rvtest_bne(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3757,7 +3757,7 @@ async def rvtest_bne(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3790,12 +3790,12 @@ async def rvtest_blt(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3810,10 +3810,10 @@ async def rvtest_blt(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3852,13 +3852,13 @@ async def rvtest_blt(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -3891,7 +3891,7 @@ async def rvtest_blt(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -3924,12 +3924,12 @@ async def rvtest_bge(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -3944,10 +3944,10 @@ async def rvtest_bge(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -3986,13 +3986,13 @@ async def rvtest_bge(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4025,7 +4025,7 @@ async def rvtest_bge(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4058,12 +4058,12 @@ async def rvtest_bltu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4078,10 +4078,10 @@ async def rvtest_bltu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4120,13 +4120,13 @@ async def rvtest_bltu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4159,7 +4159,7 @@ async def rvtest_bltu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4192,12 +4192,12 @@ async def rvtest_bgeu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4212,10 +4212,10 @@ async def rvtest_bgeu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4254,13 +4254,13 @@ async def rvtest_bgeu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4293,7 +4293,7 @@ async def rvtest_bgeu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4326,12 +4326,12 @@ async def rvtest_jal(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4346,10 +4346,10 @@ async def rvtest_jal(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4388,13 +4388,13 @@ async def rvtest_jal(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4427,7 +4427,7 @@ async def rvtest_jal(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4460,12 +4460,12 @@ async def rvtest_jalr(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4480,10 +4480,10 @@ async def rvtest_jalr(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4522,13 +4522,13 @@ async def rvtest_jalr(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4561,7 +4561,7 @@ async def rvtest_jalr(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4594,12 +4594,12 @@ async def rvtest_lui(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4614,10 +4614,10 @@ async def rvtest_lui(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4656,13 +4656,13 @@ async def rvtest_lui(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4695,7 +4695,7 @@ async def rvtest_lui(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4728,12 +4728,12 @@ async def rvtest_auipc(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4748,10 +4748,10 @@ async def rvtest_auipc(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4790,13 +4790,13 @@ async def rvtest_auipc(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4829,7 +4829,7 @@ async def rvtest_auipc(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4865,12 +4865,12 @@ async def rvtest_mul(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -4885,10 +4885,10 @@ async def rvtest_mul(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -4927,13 +4927,13 @@ async def rvtest_mul(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -4966,7 +4966,7 @@ async def rvtest_mul(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -4999,12 +4999,12 @@ async def rvtest_mulh(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5019,10 +5019,10 @@ async def rvtest_mulh(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5061,13 +5061,13 @@ async def rvtest_mulh(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5100,7 +5100,7 @@ async def rvtest_mulh(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -5133,12 +5133,12 @@ async def rvtest_mulhsu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5153,10 +5153,10 @@ async def rvtest_mulhsu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5195,13 +5195,13 @@ async def rvtest_mulhsu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5234,7 +5234,7 @@ async def rvtest_mulhsu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -5267,12 +5267,12 @@ async def rvtest_mulhu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5287,10 +5287,10 @@ async def rvtest_mulhu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5329,13 +5329,13 @@ async def rvtest_mulhu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5368,7 +5368,7 @@ async def rvtest_mulhu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -5401,12 +5401,12 @@ async def rvtest_div(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5421,10 +5421,10 @@ async def rvtest_div(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5463,13 +5463,13 @@ async def rvtest_div(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5502,7 +5502,7 @@ async def rvtest_div(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -5535,12 +5535,12 @@ async def rvtest_divu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5555,10 +5555,10 @@ async def rvtest_divu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5597,13 +5597,13 @@ async def rvtest_divu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5636,7 +5636,7 @@ async def rvtest_divu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -5669,12 +5669,12 @@ async def rvtest_rem(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5689,10 +5689,10 @@ async def rvtest_rem(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5731,13 +5731,13 @@ async def rvtest_rem(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5770,7 +5770,7 @@ async def rvtest_rem(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1
@@ -5803,12 +5803,12 @@ async def rvtest_remu(dut):
     
     # sram_4096w_8b 메모리 초기화 (512 rows x 64 bits)
     for idx in range (0, 512):
-        dut.genblk1.M0_0.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_1.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_2.SRAM_4096W_8B.mem[idx].value = 0
-        dut.genblk1.M0_3.SRAM_4096W_8B.mem[idx].value = 0
+        dut.genblk1.M0_0.mem[idx].value = 0
+        dut.genblk1.M0_1.mem[idx].value = 0
+        dut.genblk1.M0_2.mem[idx].value = 0
+        dut.genblk1.M0_3.mem[idx].value = 0
     for idx in range (0, 512):
-        dut.genblk1.M1_0.SRAM_4096W_32B.mem[idx].value = 0
+        dut.genblk1.M1_0.mem[idx].value = 0
     await Timer(1, units="ns")
 
     # dmem_path = "/home/pjy-wsl/rv32i/dmem.mem"
@@ -5823,10 +5823,10 @@ async def rvtest_remu(dut):
             row_addr = (idx >> 3) & 0x1ff   # 9-bit (0-511)
             if idx < 4096:
                 # instruction memory (idx < 4096)
-                data0 =  dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value
-                data1 =  dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value
-                data2 =  dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value
-                data3 =  dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value
+                data0 =  dut.genblk1.M0_0.mem[row_addr].value
+                data1 =  dut.genblk1.M0_1.mem[row_addr].value
+                data2 =  dut.genblk1.M0_2.mem[row_addr].value
+                data3 =  dut.genblk1.M0_3.mem[row_addr].value
 
                 # 32비트를 4개의 8비트 SRAM에 분산 저장 (sram_4096w_8b 구조에 맞게)
                 data0 = data0 | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
@@ -5865,13 +5865,13 @@ async def rvtest_remu(dut):
                 data3 = data3 | (((inst_decimal & 0x40000000) >> 30) << (6*8 + mux_addr))
                 data3 = data3 | (((inst_decimal & 0x80000000) >> 31) << (7*8 + mux_addr))
 
-                dut.genblk1.M0_0.SRAM_4096W_8B.mem[row_addr].value = data0
-                dut.genblk1.M0_1.SRAM_4096W_8B.mem[row_addr].value = data1
-                dut.genblk1.M0_2.SRAM_4096W_8B.mem[row_addr].value = data2
-                dut.genblk1.M0_3.SRAM_4096W_8B.mem[row_addr].value = data3
+                dut.genblk1.M0_0.mem[row_addr].value = data0
+                dut.genblk1.M0_1.mem[row_addr].value = data1
+                dut.genblk1.M0_2.mem[row_addr].value = data2
+                dut.genblk1.M0_3.mem[row_addr].value = data3
             else: 
                 # data memory 처리 (4096 이상)
-                ddata = dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value
+                ddata = dut.genblk1.M1_0.mem[row_addr].value
                 ddata = ddata | (((inst_decimal & 0x00000001) >> 0)  << (0*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000002) >> 1)  << (1*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x00000004) >> 2)  << (2*8 + mux_addr))
@@ -5904,7 +5904,7 @@ async def rvtest_remu(dut):
                 ddata = ddata | (((inst_decimal & 0x20000000) >> 29) << (29*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x40000000) >> 30) << (30*8 + mux_addr))
                 ddata = ddata | (((inst_decimal & 0x80000000) >> 31) << (31*8 + mux_addr))
-                dut.genblk1.M1_0.SRAM_4096W_32B.mem[row_addr].value = ddata
+                dut.genblk1.M1_0.mem[row_addr].value = ddata
             
             await RisingEdge(dut.clk_i)
             idx = idx + 1

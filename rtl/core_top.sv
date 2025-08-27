@@ -380,56 +380,79 @@ module core_top #(
         end
 
         // IMEM
-        sram_4096w_8b_wrapper M0_0 (
-            .clk_i          (clk_i),
-            .wen_i          (~({{imem_write}} & imem_size[0])),
-            .addr_i         (imem_addr_0),
-            .din_i          (imem_wr_data[7:0]),
-            .dout_o         (dout_0)
-        );
-        sram_4096w_8b_wrapper M0_1 (
-            .clk_i          (clk_i),
-            .wen_i          (~({{imem_write}} & imem_size[1])),
-            .addr_i         (imem_addr_1),
-            .din_i          (imem_wr_data[15:8]),
-            .dout_o         (dout_1)
-        );
-        sram_4096w_8b_wrapper M0_2 (
-            .clk_i          (clk_i),
-            .wen_i          (~({{imem_write}} & imem_size[2])),
-            .addr_i         (imem_addr_2),
-            .din_i          (imem_wr_data[23:16]),
-            .dout_o         (dout_2)
-        );
-        sram_4096w_8b_wrapper M0_3 (
-            .clk_i          (clk_i),
-            .wen_i          (~({{imem_write}} & imem_size[3])),
-            .addr_i         (imem_addr_3),
-            .din_i          (imem_wr_data[31:24]),
-            .dout_o         (dout_3)
-        );
-
+        sram_4096w_8b M0_0 (
+		    .CLK 			(clk_i),
+		    .CEN			(1'b0),
+		    .WEN			(~({{imem_write}} & imem_size[0])),
+		    .A 				(imem_addr_0), // 12-bit address
+		    .D 				(imem_wr_data[7:0]),
+		    .EMA			(3'b000),
+		    .RETN			(1'b1),
+		    // outputs
+		    .Q 				(dout_0)
+	    );
+        sram_4096w_8b M0_1 (
+		    .CLK 			(clk_i),
+		    .CEN			(1'b0),
+		    .WEN			(~({{imem_write}} & imem_size[1])),
+		    .A 				(imem_addr_1), // 12-bit address
+		    .D 				(imem_wr_data[15:8]),
+		    .EMA			(3'b000),
+		    .RETN			(1'b1),
+		    // outputs
+		    .Q 				(dout_1)
+	    );
+        sram_4096w_8b M0_2 (
+		    .CLK 			(clk_i),
+		    .CEN			(1'b0),
+		    .WEN			(~({{imem_write}} & imem_size[2])),
+		    .A 				(imem_addr_2), // 12-bit address
+		    .D 				(imem_wr_data[23:16]),
+		    .EMA			(3'b000),
+		    .RETN			(1'b1),
+		    // outputs
+		    .Q 				(dout_2)
+	    );
+        sram_4096w_8b M0_3 (
+		    .CLK 			(clk_i),
+		    .CEN			(1'b0),
+		    .WEN			(~({{imem_write}} & imem_size[3])),
+		    .A 				(imem_addr_3), // 12-bit address
+		    .D 				(imem_wr_data[31:24]),
+		    .EMA			(3'b000),
+		    .RETN			(1'b1),
+		    // outputs
+		    .Q 				(dout_3)
+	    );
         assign imem_rd_data = imem_rd_data_tmp;
     
         // DMEM
-        sram_4096w_32b_wrapper M1_0 (
-            .clk_i          (clk_i),
-            .gwen_i         (dmem_read),
-            .wen_i          (~({4{dmem_write}} & dmem_size)),
-            .addr_i         (dmem_addr[13:2]),
-            .din_i          (dmem_wr_data),
-            .dout_o         (dmem_rd_data)
-        );
+        sram_4096w_32b M1_0 (
+	    	.CLK 			(clk_i),
+	    	.CEN			(1'b0),
+            .GWEN           (dmem_read),
+	    	.WEN			(~({4{dmem_write}} & dmem_size)),
+	    	.A 				(dmem_addr[13:2]), // 12-bit address
+	    	.D 				(dmem_wr_data),
+	    	.EMA			(3'b000),
+	    	.RETN			(1'b1),
+	    	// outputs
+	    	.Q 				(dmem_rd_data)
+	    );
 
 	    // BUF_0
-        sram_4096w_32b_wrapper M2_0 (
-            .clk_i          (clk_i),
-            .gwen_i         (buf_read_0),
-            .wen_i          (~({4{buf_write_0}} & buf_size_0)),
-            .addr_i         (buf_addr_0[13:2]),
-            .din_i          (buf_wr_data_0),
-            .dout_o         (buf_rd_data_0)
-        );
+        sram_4096w_32b M2_0 (
+	    	.CLK 			(clk_i),
+	    	.CEN			(1'b0),
+            .GWEN           (buf_read_0),
+	    	.WEN			(~({4{buf_write_0}} & buf_size_0)),
+	    	.A 				(buf_addr_0[13:2]), // 12-bit address
+	    	.D 				(buf_wr_data_0),
+	    	.EMA			(3'b000),
+	    	.RETN			(1'b1),
+	    	// outputs
+	    	.Q 				(buf_rd_data_0)
+	    );
     
 	    //// BUF_1
         //sram_4096w_32b_wrapper M2_1 (
