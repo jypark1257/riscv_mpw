@@ -126,7 +126,7 @@ module core_ex_stage #(
 
     // Multiplier and Divider
     muldiv_unit #(
-        .FPGA(FPGA),
+        .FPGA(1),
         .XLEN(XLEN)
     ) m_u (
         .clk_i(clk_i),

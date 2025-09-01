@@ -1,6 +1,6 @@
 module ram_block_imem #(
     parameter IMEM_DEPTH = 4096,
-    parameter IMEM_ADDR_WIDTH = 12
+    parameter IMEM_ADDR_WIDTH = 14
 ) (
     input                       i_clk,
     input [IMEM_ADDR_WIDTH-1:0] i_addr,

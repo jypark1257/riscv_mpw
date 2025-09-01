@@ -468,7 +468,7 @@ module core_top #(
         // IMEM
         imem #(
             .MEM_DEPTH              (4096),
-            .MEM_ADDR_WIDTH         (12)
+            .MEM_ADDR_WIDTH         (14)
         ) imem_0 (
             .i_clk                  (clk_i),
 
@@ -483,7 +483,7 @@ module core_top #(
         // DMEM
         dmem #(
             .MEM_DEPTH              (4096),
-            .MEM_ADDR_WIDTH         (12)
+            .MEM_ADDR_WIDTH         (14)
         ) dmem_0 (
             .i_clk                  (clk_i),
 
@@ -530,7 +530,9 @@ module core_top #(
     uart_wrap_test #(
         .UART_CTRL              (32'h8000_0000),
         .UART_RECV              (32'h8000_0004),
-        .UART_TRANS             (32'h8000_0008)
+        .UART_TRANS             (32'h8000_0008),
+        .UART_SYMBOL_EDGE_TIME  (32'h8000_000C),
+        .UART_SAMPLE_TIME       (32'h8000_0010)
     ) on_chip_uart_0 (
         .clk_i                  (clk_i), 
         .rst_ni                 (rv_rst_ni), 

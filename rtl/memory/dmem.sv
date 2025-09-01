@@ -1,6 +1,6 @@
 module dmem #(
     parameter MEM_DEPTH = 4096,
-    parameter MEM_ADDR_WIDTH = 12
+    parameter MEM_ADDR_WIDTH = 14
 ) (
     input                   i_clk,
     

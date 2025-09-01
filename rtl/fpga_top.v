@@ -86,10 +86,8 @@ module fpga_top(
 
     // ─── Core logic ────────────────────────────────────────
     mpw_top #(
-        .FPGA(1),
-        .CPU_CLOCK_FREQ(25_000_000),
-        .BAUD_RATE  (115200)
-    ) u_core_top_10 (
+        .FPGA(1)
+    ) u_core_top_0 (
         .CLK(sysclk),
         .RVRSTN(rst_ni),
         .SPIRSTN(spi_rst_ni),
