@@ -24,7 +24,8 @@ module core_id_stage #(
     output  logic               dma_en_o,
     output  logic   [XLEN-1:0]  imm_o,
     output  logic   [XLEN-1:0]  rs1_dout_o,
-    output  logic   [XLEN-1:0]  rs2_dout_o
+    output  logic   [XLEN-1:0]  rs2_dout_o,
+    output  logic               muldiv_en_o
 );
 
     logic [XLEN-1:0] executing_instruction_debug;
@@ -62,7 +63,8 @@ module core_id_stage #(
         .mem_to_reg_o   (mem_to_reg_o),
         .mem_read_o     (mem_read_o),
         .mem_write_o    (mem_write_o),
-        .dma_en_o       (dma_en_o)
+        .dma_en_o       (dma_en_o),
+        .muldiv_en_o    (muldiv_en_o)
     );
 
     // Immrdiate generator

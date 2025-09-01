@@ -1,5 +1,4 @@
 `include "opcode.svh"
-
 module decoder (
     input           [6:0]   opcode_i,
     input           [4:0]   rd_i,
@@ -15,7 +14,9 @@ module decoder (
     output  logic           mem_read_o,
     output  logic           mem_write_o,
     // DMA enable signal
-    output logic            dma_en_o
+    output logic            dma_en_o,
+    // MUL DIV en
+    output logic            muldiv_en_o
 );
 
     // SIZES
@@ -37,11 +38,13 @@ module decoder (
         d_size_o = '0;
         d_unsigned_o = '0;
         mem_to_reg_o = '0;
+        muldiv_en_o = '0;
         case (opcode_i)
             `OPCODE_R: begin
                 reg_write_o = 1'b1;
                 if (funct7_i == `FUNCT7_MULDIV) begin
-                    mem_to_reg_o = SRC_MUL;         // M extension
+                    mem_to_reg_o = SRC_MUL;         // M extension 
+                    muldiv_en_o = 1'b1;
                 end else begin
                     mem_to_reg_o = SRC_ALU;         // arithmetic instructions
                 end         

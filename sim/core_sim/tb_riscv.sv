@@ -37,7 +37,8 @@ module mpw_sim;
     wire [31:0] pimrd;
 
     // PERI <-> PIM
-    reg [1023:0] eFlash_output_i;
+    reg [1023:0] eFlash_output1_i;
+    reg [1023:0] eFlash_output2_i;
     // Row wise signal
     wire [1:0] MODE_o;
     wire [127:0] WL_SEL_o;
@@ -128,7 +129,8 @@ module mpw_sim;
         .data_o(pimrd),
 
         // PIM
-        .eFlash_output_i(eFlash_output_i),
+        .eFlash_output_1_i(eFlash_output1_i),
+        .eFlash_output_2_i(eFlash_output2_i),
 
         // Row wise signal
         .MODE_o(MODE_o),
@@ -151,17 +153,35 @@ module mpw_sim;
     );
 
     // Make random data from eFlash PIM
-    task automatic random_eFlash_output();
+    task automatic random_eFlash1_output();
         // 8 bit * 128
         logic [7:0] choices8b[] = '{
             8'b00000000, 8'b10000000, 8'b11000000, 8'b11100000, 8'b11110000, 8'b11111000, 8'b11111100, 8'b11111110, 8'b11111111
             };
         for (int i = 0; i < 128; i++) begin
-            eFlash_output_i[1023 - 8*i -: 8] = choices8b[$urandom_range(0, choices8b.size()-1)];
+            eFlash_output1_i[1023 - 8*i -: 8] = choices8b[$urandom_range(0, choices8b.size()-1)];
         end
         for (int w = 0; w < 32; w++) begin
             logic [31:0] word;
-            word = eFlash_output_i[1023 - 32 * w -: 32];
+            word = eFlash_output1_i[1023 - 32 * w -: 32];
+            $write("%0t  [%02d] 0x%08h  ", $time, w, word);
+            if ((w % 4) == 3) $write("\n");
+        end
+        $write("\n");
+    endtask
+
+        // Make random data from eFlash PIM
+    task automatic random_eFlash2_output();
+        // 8 bit * 128
+        logic [7:0] choices8b[] = '{
+            8'b00000000, 8'b10000000, 8'b11000000, 8'b11100000, 8'b11110000, 8'b11111000, 8'b11111100, 8'b11111110, 8'b11111111
+            };
+        for (int i = 0; i < 128; i++) begin
+            eFlash_output2_i[1023 - 8*i -: 8] = choices8b[$urandom_range(0, choices8b.size()-1)];
+        end
+        for (int w = 0; w < 32; w++) begin
+            logic [31:0] word;
+            word = eFlash_output2_i[1023 - 32 * w -: 32];
             $write("%0t  [%02d] 0x%08h  ", $time, w, word);
             if ((w % 4) == 3) $write("\n");
         end
@@ -365,7 +385,8 @@ module mpw_sim;
 			$display("testbench> flash addr: %h \t data[%d]: %h", flash_addr, i, spi_data_in);
 		end
 
-        random_eFlash_output();
+        random_eFlash1_output();
+        random_eFlash2_output();
 
         #100 i_spi_rst_n = 0; i_rv_rst_n = 1;
 

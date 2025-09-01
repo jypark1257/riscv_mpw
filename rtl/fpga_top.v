@@ -31,7 +31,7 @@ module fpga_top(
     wire clkfb_out;
     wire clkfb_buf;
     wire clk_mmcm_out;
-    wire sysclk;
+    wire sysclk; 
 
 
     // ─── Internal SPI/UART wires ───────────────────────────
@@ -87,7 +87,7 @@ module fpga_top(
     // ─── Core logic ────────────────────────────────────────
     mpw_top #(
         .FPGA(1)
-    ) u_core_top_0 (
+    ) u_core_top_2 (
         .CLK(sysclk),
         .RVRSTN(rst_ni),
         .SPIRSTN(spi_rst_ni),

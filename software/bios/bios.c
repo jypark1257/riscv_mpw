@@ -10,7 +10,7 @@ typedef void (*entry_t)(void);
 int main(void) {
     // clock frequency: 100MHz
     // baud rate: 115200
-    uart_init(25000000, 115200);
+    uart_init(25000000, 9600);
 
     // initialize buffer first (for debugging)
     (*((volatile uint32_t*)0x20000000)) = 0x12345678;
@@ -57,9 +57,6 @@ int main(void) {
     (*((volatile uint32_t*)0x200000a4)) = 0xfacefeed;
     (*((volatile uint32_t*)0x200000a8)) = 0x0badc0de;
     (*((volatile uint32_t*)0x200000ac)) = 0x8badf00d;   
-
-    //(*((volatile uint32_t*)0x20000100))
-
 
     uwrite_int8s("\n\r");
 

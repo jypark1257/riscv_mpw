@@ -1,11 +1,8 @@
-
 `include "opcode.svh"
 `include "pipe_reg.svh"
-
 module core #(
     parameter bit FPGA = 0,
     parameter XLEN = 32,
-    parameter FLEN = 32,
     parameter RESET_PC = 32'h1000_0000
 
 ) (
@@ -66,12 +63,15 @@ module core #(
     logic [2:0] mem_to_reg;
     logic [3:0] d_size;
     logic d_unsigned;
+    logic muldiv_en;
 
     logic [XLEN-1:0] wr_data;
     logic [XLEN-1:0] forward_in1;
     logic [XLEN-1:0] forward_in2;
     logic [XLEN-1:0] alu_result;
     logic ex_mem_write;
+    logic ex_valid;
+    logic ex_valid_pc;
 
     logic [XLEN-1:0] imm;
 
@@ -80,7 +80,9 @@ module core #(
 
     logic [XLEN-1:0] rd_din;
 
+    logic ex_stall_pc;
     logic dma_stall;
+    logic ex_stall;
     logic if_flush;    
     logic id_flush;
     logic if_stall;
@@ -112,16 +114,15 @@ module core #(
     logic [XLEN-1:0] instr_compressed;
     logic is_compressed;
     logic is_next_instr_compressed;
-    assign pc_write = ((!dma_stall) && (!dma_en)) ? 1'b1 : 1'b0;
+    assign pc_write = ((!dma_stall) && (!ex_stall_pc) && (!muldiv_en)) ? 1'b1 : 1'b0;
 
     // instruction memory interface
     assign instr_addr_o = (branch_taken) ? pc_branch : pc_curr;
     assign instr = instr_rd_data_i;
     assign instr_wr_data_o = '0;
     assign instr_size_o = 4'b1111;        // always 32-bit access
-    assign instr_read_o = (!dma_stall) ? 1'b1 : 1'b0;
+    assign instr_read_o = ((!dma_stall) && (!ex_stall)) ? 1'b1 : 1'b0;
     assign instr_write_o = 1'b0;
-    
     // determine compressed instruction
     assign is_compressed = (instr[1:0] != 2'b11);
     always_comb begin
@@ -140,8 +141,6 @@ module core #(
         end else begin
             if (branch_taken) begin
                 valid_q <= 1'b1;
-            end else if (!pc_write) begin
-                valid_q <= valid_q; // keep the valid state
             end else begin
                 valid_q <= valid_d;
             end
@@ -152,8 +151,12 @@ module core #(
     always_comb begin
         valid_d = 1'b0;
         if (valid_q) begin  // 16b or 32l or init
-            if (is_compressed) begin    // 16b
-                valid_d = 1'b1;
+            if (is_compressed) begin    // 16b  
+                if (is_next_instr_compressed) begin // 16b, 16b
+                    valid_d = 1'b1;
+                end else begin  // 32l
+                    valid_d = 1'b1;
+                end
             end else begin  // 32l
                 if (pc_curr == RESET_PC) begin // initial instruction
                     valid_d = 1'b1;
@@ -171,7 +174,7 @@ module core #(
     // --------------------------------------------------------
 
     assign if_flush = (invalid_instr_flush || branch_taken) ? 1'b1 : 1'b0;
-    assign if_stall = (dma_stall) ? 1'b1: 1'b0;
+    assign if_stall = (dma_stall || ex_stall) ? 1'b1: 1'b0;
 
     // IF/ID pipeline register
     always_ff @(posedge clk_i or negedge rst_ni) begin
@@ -217,7 +220,8 @@ module core #(
         .d_unsigned_o       (d_unsigned),
         .dma_en_o           (dma_en),
         .rs1_dout_o         (rs1_dout),
-        .rs2_dout_o         (rs2_dout)
+        .rs2_dout_o         (rs2_dout),
+        .muldiv_en_o        (muldiv_en)
     );
 
 
@@ -229,7 +233,7 @@ module core #(
 
     // --------------------------------------------------------
     assign id_flush = (branch_taken || dma_stall) ? 1'b1 : 1'b0;
-    assign id_stall = 1'b0;
+    assign id_stall = (ex_stall) ? 1'b1 : 1'b0;
 
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (rst_ni == '0) begin
@@ -288,10 +292,16 @@ module core #(
         .pc_branch_o    (pc_branch),
         .forward_in1_o  (forward_in1),
         .forward_in2_o  (forward_in2),
-        .mul_result_o   (mul_result)
+        .mul_result_o   (mul_result),        // M extension
+        .ex_valid_o     (ex_valid),
+        .ex_valid_pc_o  (ex_valid_pc)
     );
 
     assign dma_stall = (dma_busy_i || ex.dma_en) ? 1'b1 : 1'b0;
+
+    assign ex_stall_pc = (!ex_valid_pc) ? 1'b1 : 1'b0;
+
+    assign ex_stall = (!ex_valid) ? 1'b1 : 1'b0;
 
     // DMA interface
     assign dma_en_o = ex.dma_en;
@@ -299,6 +309,7 @@ module core #(
     assign dma_imm_o = ex.imm[11:0];
     assign dma_rs1_o = forward_in1;
     assign dma_rs2_o = forward_in2;
+    
 
     // data interface set
     // un-aligned store

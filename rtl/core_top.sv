@@ -2,7 +2,6 @@
 module core_top #(
     parameter bit FPGA          = 0,
     parameter XLEN              = 32,
-    parameter CPU_CLOCK_FREQ    = 100_000_000,
     parameter RESET_PC          = 32'h1000_0000
 ) (
     input                       clk_i,
